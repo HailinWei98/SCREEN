@@ -1,0 +1,24 @@
+#matrix file directory
+mtx_dir: NULL
+#cell names file directory
+barcode_dir: NULL
+#gene names file directory
+gene_dir: NULL
+#sgRNA file directory
+sg_dir: NULL
+#the prefix directory of output file
+prefix: $(pwd)
+#project name
+project: RNA
+#the species of input files
+species: Hs
+#if sgRNA information store in an extra file
+sg_file: False
+#if all the cells has unique label without blank cells
+unique: False
+#if there are blank control in matrix
+blank: False
+#name of Negative Control
+NTC: NTC
+#use which method
+QC_function: scMAGeCK

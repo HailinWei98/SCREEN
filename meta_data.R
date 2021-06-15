@@ -28,7 +28,7 @@ sg_in_cell<- data.frame(count(sg_lib_filtered$cell))
 for(i in 1:nrow(sg_in_cell)){
     x<- sg_in_cell[i,]
     if(x[,2]==1){
-        label[x[,1]]<- sg_lib_filtered[which(sg_lib_filtered$cell==x[,1]),3]}else{
+        label[x[,1]]<- sg_lib_filtered[which(sg_lib_filtered$cell==x[,1]),]$gene}else{
         label[x[,1]]<- "multiple"}
 }
 

@@ -13,11 +13,15 @@ VlnPlot(perturb, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol 
 dev.off()
 
 #filter cells with low quality
+if(nrow(perturb)>=500){
 perturb_QC<- subset(perturb, 
                      nFeature_RNA <= 5000 & 
                      nFeature_RNA >= 200 & 
                      nCount_RNA >= 1000 &
                      percent.mt <= 10)
+    }else{
+    perturb_QC<- perturb
+}
 pdf("QC_matrix_quality_vlnplot.pdf")
 VlnPlot(perturb_QC, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3, pt.size = 0.1)
 dev.off()
