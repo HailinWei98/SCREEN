@@ -5,6 +5,7 @@ scCRISPR is a pipeline to visualize the quality of single-cell CRISPR screens RN
 	Seurat>=4.0.3
 	scMAGeCK
 	snakemake
+	mixtools
 
 ## Parameter
 	mtx_dir: The matrix file directory,require rds file with SeuratObject.
