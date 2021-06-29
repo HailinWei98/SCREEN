@@ -1,4 +1,5 @@
 # scCRISPR
+scCRISPR is a pipeline to visualize the quality of single-cell CRISPR screens RNA-seq datasets.scCRISPR has integrated two R function: scMAGeCK_lr and Mixscape to estimate the regulatory score between perturbations and genes and estimate the perturbation efficiency of datasets,respectively.
 ## Dependency
 	R>=4.0.3
 	Seurat>=4.0.3
