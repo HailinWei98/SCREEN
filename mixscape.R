@@ -11,6 +11,12 @@ library(plyr)
 args<- commandArgs(T)
 mtx_dir<- args[1]
 sg_dir<- args[2]
+NTC<- args[3]
+
+custom_theme <- theme(
+  plot.title = element_text(size=16, hjust = 0.5), 
+  legend.key.size = unit(0.7, "cm"), 
+  legend.text = element_text(size = 14))
 
 eccite<- readRDS(mtx_dir)
 eccite <- subset(eccite, 
@@ -20,7 +26,10 @@ eccite <- subset(eccite,
                      percent.mt <= 10)
 #add barcode information
 sg_lib<- read.table(sg_dir,header=T)
+sg_in_cell<- data.frame(plyr::count(sg_lib$cell))
+sg_lib<- subset(sg_lib,cell %in% subset(sg_in_cell,freq==1)[,1])
 rownames(sg_lib)<- sg_lib$cell
+eccite<- eccite[,colnames(eccite) %in% sg_lib$cell]
 NT<- data.frame(cell = colnames(eccite),nt = "a")
 NT$nt<- sg_lib[NT$cell,]$barcode
 eccite <- AddMetaData(eccite,as.factor(NT$nt),col.name = "NT")
@@ -44,7 +53,7 @@ eccite<- CellCycleScoring(eccite, s.features = s.genes, g2m.features = g2m.genes
 #transform label
 eccite$gene <- eccite$perturbations
 eccite$perturbations<- as.character(eccite$perturbations)
-eccite$perturbations[which(eccite$perturbations!="NTC")] <- "perturbed"
+eccite$perturbations[which(eccite$perturbations!=NTC)] <- "perturbed"
 
 # Generate plots to check if clustering is driven by biological replicate ID, 
 # cell cycle phase or target gene class.
@@ -94,7 +103,7 @@ eccite<- CalcPerturbSig(
   object = eccite, 
   assay = "RNA", 
   gd.class ="gene", 
-  nt.cell.class = "NTC", 
+  nt.cell.class = NTC, 
   reduction = "pca", 
   ndims = 40, 
   num.neighbors = 20, 
@@ -167,7 +176,7 @@ eccite <- RunMixscape(
   assay = "PRTB", 
   slot = "scale.data", 
   labels = "gene", 
-  nt.class.name = "NTC", 
+  nt.class.name = NTC, 
   min.de.genes = 5, 
   iter.num = 10, 
   de.assay = "RNA", 
@@ -185,10 +194,10 @@ if(length(unique(eccite$mixscape_class.global))==3){
     test <- test[order(test$value, decreasing = T),]
     new.levels <- test$Var2
     df2$Var2 <- factor(df2$Var2, levels = new.levels )
-    df2$Var1 <- factor(df2$Var1, levels = c("NTC", "NP", "KO"))
+    df2$Var1 <- factor(df2$Var1, levels = c(NTC, "NP", "KO"))
     df2$gene <- sapply(as.character(df2$Var2), function(x) strsplit(x, split = "_sgRNA")[[1]][1])
     df2$guide_number <- sapply(as.character(df2$Var2), function(x) strsplit(x, split = "_sgRNA")[[1]][2])
-    df3 <- df2[-c(which(df2$gene == "NTC")),]
+    df3 <- df2[-c(which(df2$gene == NTC)),]
     df4 <- data.frame(unique(df3[,c(1,3,4)]))
     df5 <- subset(df3,gene %in% subset(df4,Var1=="KO" & value !=0)$gene)
     #only remain genes with non-zero KO

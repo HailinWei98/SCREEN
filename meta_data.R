@@ -9,6 +9,7 @@ args<- commandArgs(T)
 mtx_dir<- args[1]
 sg_dir<- args[2]
 species<- args[3]
+replicate<- args[4]
 
 #read files
 sg_lib<- read.table(sg_dir,header=T)
@@ -41,6 +42,12 @@ for(i in 1:nrow(sg_in_cell)){
 label<- as.factor(label)
 mtx<- AddMetaData(mtx,label,col.name = "perturbations")
 mtx<- AddMetaData(mtx,sg_num,col.name = "sgRNA_num")
+if(replicate!=1){
+    replicate<- read.table(replicate,header=F)
+    mtx<- AddMetaData(mtx,as.factor(replicate[,1]),col.name = "replicate")
+}else{
+    mtx<- AddMetaData(mtx,as.factor(replicate),col.name = "replicate")
+}
 
 #calculate percent.mt
 if(species=="Hs"){
@@ -50,3 +57,7 @@ if(species=="Hs"){
 }
 
 saveRDS(mtx,file="perturb.rds")
+write.table(sg_lib,file="sg_lib_all.txt",row.names=FALSE,quote=FALSE)
+sg_in_cell<- data.frame(plyr::count(sg_lib$cell))
+sg_lib<- subset(sg_lib,cell %in% subset(sg_in_cell,freq==1)[,1])
+write.table(sg_lib,file = "sg_lib.txt",row.names = FALSE,,quote=FALSE)
