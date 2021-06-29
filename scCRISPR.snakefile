@@ -39,7 +39,7 @@ rule all:
         echo "running Mixscape"
         Rscript $prefix/mixscape.R {config[mtx_dir]} {config[sg_dir]} {config[NTC]}
         echo "finished"
-        elif  {config[function]}=='QC' ];
+        elif [ {config[function]}=='QC' ];
         then
         echo "running single cell QC"
         Rscript $prefix/scQC.R {config[mtx_dir]}
@@ -47,7 +47,7 @@ rule all:
         echo "running sgRNA QC"
         Rscript $prefix/sgQC.R {config[mtx_dir]} {config[sg_dir]}
         echo "finish sgRNA QC"
-        elif  {config[function]}=='nc' ];
+        elif [ {config[function]}=='nc' ];
         then
         echo "begin normalize and scale data"
         Rscript $prefix/normalize_scale_data.R {config[mtx_dir]} {config[features]}
