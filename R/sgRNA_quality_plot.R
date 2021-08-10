@@ -22,7 +22,7 @@ sgRNA_quality_plot<- function(sg_dir, mtx_dir,label = "", prefix = "./"){
   #count sgRNA in each cell;count cells of each sgRNA
 
   #before QC filtered
-  sg_count<- count(subset(sg_lib_filtered,cell %in% colnames(mtx))$barcode)
+  sg_count<- plyr::count(subset(sg_lib_filtered,cell %in% colnames(mtx))$barcode)
   colnames(sg_count)<- c("sgRNA","freq")
   sg_count<- sg_count[order(-sg_count$freq),]
   sg_count$order<- seq(1,nrow(sg_count))
