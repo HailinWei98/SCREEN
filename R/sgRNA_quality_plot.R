@@ -53,7 +53,8 @@ sgRNA_quality_plot<- function(sg_dir, mtx_dir,label = "", prefix = "./"){
 
   #save plot
   pdf(file = file.path(prefix, paste(label, "sgRNA_quality.pdf", sep = "")))
-  g1;g2
+  print(g1)
+  print(g2)
   dev.off()
   g3<- g1 + g2
 
@@ -61,7 +62,7 @@ sgRNA_quality_plot<- function(sg_dir, mtx_dir,label = "", prefix = "./"){
   dir.create(path = dir)
   for(select_gene in unique(sg_count$gene)){
     pdf(file = file.path(dir, paste(select_gene, ".pdf", sep = "")))
-    ggplot(data = sg_count, mapping = aes(x = order, y = freq)) +
+    p1<- ggplot(data = sg_count, mapping = aes(x = order, y = freq)) +
       geom_line(size = 1)+ theme_classic() +
       geom_point(data = subset(sg_count, gene == select_gene),
                  mapping = aes(x = order, y = freq, color = sgRNA), size = 5)+
@@ -72,8 +73,8 @@ sgRNA_quality_plot<- function(sg_dir, mtx_dir,label = "", prefix = "./"){
       scale_color_discrete(name = paste("sgRNA of",select_gene, sep = " "),
                            breaks = head(subset(sg_count, gene == select_gene), 10)$sgRNA) +
       guides(colour = guide_legend(title.hjust = 0.5))
-    dev.off()
+    print(p1)
+    dev.off()  
   }
-
   return(g3)
 }

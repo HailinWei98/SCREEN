@@ -15,7 +15,7 @@ DE_gene_plot<- function(score_dir, pval_dir, project = "perturb",
     scmageck$diff<- "non"
     scmageck$diff[scmageck$score > score_cut & scmageck$p_val < p_val_cut]<- "up"
     scmageck$diff[scmageck$score < score_cut & scmageck$p_val < p_val_cut]<- "down"
-    a<- count(scmageck$diff)
+    a<- plyr::count(scmageck$diff)
     rownames(a)<- a$x
     for(j in a$x){
       de_genes[i,j]<- a[j,2]
@@ -48,7 +48,7 @@ DE_gene_plot<- function(score_dir, pval_dir, project = "perturb",
                                   seq(ylimit[3],ylimit[2],ylimit[3])))
   pdf(file.path(prefix,
                 paste(label, "DE_gene_cutoff",score_cut,"_p",p_val_cut,".pdf",sep = "")))
-  p1
+  print(p1)
   dev.off()
   return(p1)
 }
