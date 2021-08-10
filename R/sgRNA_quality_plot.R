@@ -43,13 +43,22 @@ sgRNA_quality_plot<- function(sg_dir, mtx_dir,label = "", prefix = "./"){
     scale_color_discrete(name = "top 10 sgRNA", breaks = head(sg_count,10)$sgRNA) +
     guides(colour = guide_legend(title.hjust = 0.5))
 
-  g2<- ggplot(mtx[["sgRNA_num"]],aes(x = sgRNA_num)) +
-    geom_histogram(binwidth = 1,color="#e9ecef",fill="#69b3a2") +
-    theme_classic() +
+  sg_num_count<- plyr::count(mtx[["sgRNA_num"]])
+  if(max(data$sgRNA_num)>10){
+    over_10<- subset(sg_num_count, sgRNA_num > 10)
+    sg_num_count<- subset(sg_num_count, sgRNA_num<= 10)
+    over_10<- sum(over_10$freq)
+    sg_num_count<- rbind(sg_num_count, c(">10", over_10))
+  }
+  colnames(sg_num_count)<- c("sgRNA_num", "freq")
+  sg_num_count$freq<- as.numeric(sg_num_count$freq)
+  sg_num_count$sgRNA_num<- factor(sg_num_count$sgRNA_num, levels = sg_num_count$sgRNA_num, ordered = T)
+
+  g2<- ggplot(sg_num_count,mapping = aes(x=sgRNA_num,y=freq)) +
+    geom_bar(stat="identity",color="#e9ecef",fill="#69b3a2") + theme_classic() + 
     labs(x="perturbed numbers",y="cell numbers",title = "sgRNA number in each cell") +
-    theme(plot.title=element_text(hjust=0.5)) +
-    geom_text(aes(label=as.character(..count..)),stat="bin",binwidth=1,vjust=-0.5) +
-    scale_x_continuous(breaks=seq(min(mtx[["sgRNA_num"]]),max(mtx[["sgRNA_num"]]),1))
+    theme(plot.title=element_text(hjust=0.5),axis.text.x = element_text(angle = 0,hjust = 0.5,vjust = 0.5)) +
+    geom_text(aes(label=freq),stat="identity",vjust=-0.5)
 
   #save plot
   pdf(file = file.path(prefix, paste(label, "sgRNA_quality.pdf", sep = "")))
