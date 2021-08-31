@@ -4,8 +4,17 @@
 DE_gene_plot<- function(score_dir, pval_dir, project = "perturb",
                         prefix = "./", p_val_cut = 0.05, score_cut = 0.5, label = "",
                         ylimit = c(-600, 600, 200)){
-  score<- read.table(score_dir,header=T,row.names=1)
-  p_val<- read.table(pval_dir,header=T,row.names=1)
+  if(is.character(score_dir)){
+      score <- read.table(score_dir,header=T,row.names=1)
+  }else{
+      score <- score_dir
+  }
+  if(is.character(pval_dir)){
+      p_val <- read.table(pval_dir,header=T,row.names=1)
+  }else{
+      p_val <- pval_dir
+  }
+  
   de_genes<- data.frame(non=rep(0, ncol(score)),
                         up=rep(0,ncol(score)), down=rep(0, ncol(score)))
   rownames(de_genes)<- colnames(score)

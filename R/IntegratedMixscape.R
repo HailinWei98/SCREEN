@@ -94,7 +94,7 @@ IntegratedMixscape<- function(sg_dir, mtx_dir,
 
   #save plots.
   pdf(file.path(prefix, "mixscape_before.pdf"))
-  ((p1 / p2 + plot_layout(guides = 'auto')) | p3 )
+  print(((p1 / p2 + patchwork::plot_layout(guides = 'auto')) | p3 ))
   dev.off()
 
   #calculate perturb signature
@@ -166,7 +166,7 @@ IntegratedMixscape<- function(sg_dir, mtx_dir,
 
   #save plots.
   pdf(file.path(prefix, "mixscape_after.pdf"))
-  (q1 / q2 + plot_layout(guides = 'auto') | q3)
+  print((q1 / q2 + patchwork::plot_layout(guides = 'auto') | q3))
   dev.off()
 
   # Run mixscape.
@@ -182,7 +182,7 @@ IntegratedMixscape<- function(sg_dir, mtx_dir,
     verbose = F,
     prtb.type = "KO")
 
-  saveRDS(eccite,file.oath(prefix, "mixscape.rds"))
+  saveRDS(eccite,file.path(prefix, "mixscape.rds"))
 
   if(length(unique(eccite$mixscape_class.global))==3){
     # Calculate percentage of KO cells for all target gene classes.
@@ -209,13 +209,14 @@ IntegratedMixscape<- function(sg_dir, mtx_dir,
         scale_fill_manual(values = c("grey49", "grey79","coral1")) +
         ylab("% of cells") +
         xlab("sgRNA")
-      p + theme(axis.text.x = element_text(size = 18, hjust = 1),
+      q<- p + theme(axis.text.x = element_text(size = 18, hjust = 1),
                 axis.text.y = element_text(size = 18),
                 axis.title = element_text(size = 16),
                 strip.text = element_text(size=8, face = "bold")) +
         facet_wrap(vars(gene),ncol = 3, scales = "free") +
         labs(fill = "mixscape class") +theme(legend.title = element_text(size = 14),
                                              legend.text = element_text(size = 12))
+      print(q)
     }else{
       for(i in 1:(l%%12 + 1)){
         df6<- subset(df5,gene %in% unique(df5$gene)[(i*12-11):i*12])
@@ -225,13 +226,14 @@ IntegratedMixscape<- function(sg_dir, mtx_dir,
           scale_fill_manual(values = c("grey49", "grey79","coral1")) +
           ylab("% of cells") +
           xlab("sgRNA")
-        p + theme(axis.text.x = element_text(size = 18, hjust = 1),
+        q<- p + theme(axis.text.x = element_text(size = 18, hjust = 1),
                   axis.text.y = element_text(size = 18),
                   axis.title = element_text(size = 16),
                   strip.text = element_text(size=8, face = "bold")) +
           facet_wrap(vars(gene),ncol = 3, scales = "free") +
           labs(fill = "mixscape class") +theme(legend.title = element_text(size = 14),
                                                legend.text = element_text(size = 12))
+        print(q)
       }
     }
   }

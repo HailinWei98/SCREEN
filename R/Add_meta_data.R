@@ -22,18 +22,18 @@ Add_meta_data<- function(sg_dir, mtx_dir, species = "Hs", prefix = "./", label =
   sg_lib_filtered<- subset(sg_lib,cell %in% intersect(sg_lib$cell,colnames(mtx)))
 
   #label each cells
-  label<- rep("blank",times=ncol(mtx))
+  lab<- rep("blank",times=ncol(mtx))
   sg_num<- rep(0,times=ncol(mtx))
-  names(label)<- colnames(mtx)
+  names(lab)<- colnames(mtx)
   names(sg_num)<- colnames(mtx)
-  sg_in_cell<- data.frame(count(sg_lib_filtered$cell))
+  sg_in_cell<- data.frame(plyr::count(sg_lib_filtered$cell))
 
   #find unique label and multiple label
   for(i in 1:nrow(sg_in_cell)){
     x<- sg_in_cell[i,]
     if(x[,2]==1){
-      label[x[,1]]<- sg_lib_filtered[which(sg_lib_filtered$cell==x[,1]),]$gene}else{
-        label[x[,1]]<- "multiple"}
+      lab[x[,1]]<- sg_lib_filtered[which(sg_lib_filtered$cell==x[,1]),]$gene}else{
+        lab[x[,1]]<- "multiple"}
   }
 
   for(i in 1:nrow(sg_in_cell)){
@@ -42,9 +42,9 @@ Add_meta_data<- function(sg_dir, mtx_dir, species = "Hs", prefix = "./", label =
     }
   }
   #add the label information to Seurat object
-  label<- as.factor(label)
-  mtx<- AddMetaData(mtx,label,col.name = "perturbations")
-  mtx<- AddMetaData(mtx,sg_num,col.name = "sgRNA_num")
+  lab<- as.factor(lab)
+  mtx<- AddMetaData(mtx, lab, col.name = "perturbations")
+  mtx<- AddMetaData(mtx, sg_num, col.name = "sgRNA_num")
 
   #calculate percent.mt
   if(species=="Hs"){
@@ -52,11 +52,6 @@ Add_meta_data<- function(sg_dir, mtx_dir, species = "Hs", prefix = "./", label =
   }else{
     mtx[["percent.mt"]] <- PercentageFeatureSet(mtx, pattern = "^mt-")
   }
-
-  saveRDS(mtx,file = file.path(prefix, paste(label, "perturb.rds", sep = "")))
-  write.table(sg_lib,file = file.path(prefix, paste(label, "sg_lib_all.txt", sep = "")),row.names=FALSE,quote=FALSE)
-  sg_in_cell<- data.frame(plyr::count(sg_lib$cell))
-  sg_lib<- subset(sg_lib,cell %in% subset(sg_in_cell,freq==1)[,1])
-  write.table(sg_lib,file = file.path(prefix, paste(label, "sg_lib.txt", sep = "")), row.names = FALSE,quote=FALSE)
+  #saveRDS(mtx,file = file.path(prefix, paste(label, "perturb.rds", sep = "")))
   return(mtx)
 }

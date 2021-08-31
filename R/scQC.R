@@ -15,7 +15,8 @@ scQC<- function(mtx_dir, prefix = "./", species = "Hs", gene_frac = 0.01,
 
   #QC plot of the single cell matrix
   pdf(file = file.path(prefix, "raw_matrix_quality_vlnplot.pdf"))
-  VlnPlot(perturb, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3, pt.size = 0.1)
+  p1<- VlnPlot(perturb, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3, pt.size = 0.1)
+  print(p1)
   dev.off()
 
 
@@ -35,7 +36,7 @@ scQC<- function(mtx_dir, prefix = "./", species = "Hs", gene_frac = 0.01,
                          perturbations != blank)
   }
   perturb_QC<- CreateSeuratObject(counts = GetAssayData(object = perturb_QC, slot = "counts"),
-                                  min.cells = gene_frac * ncol(perturb_QC))
+                                  min.cells = gene_frac * ncol(perturb_QC), project = perturb@project.name)
   #calculate percent.mt
   if(species=="Hs"){
     perturb_QC[["percent.mt"]] <- PercentageFeatureSet(perturb_QC, pattern = "^MT-")
@@ -43,10 +44,10 @@ scQC<- function(mtx_dir, prefix = "./", species = "Hs", gene_frac = 0.01,
     perturb_QC[["percent.mt"]] <- PercentageFeatureSet(perturb_QC, pattern = "^mt-")
   }
   pdf(file = file.path(prefix, "QC_matrix_quality_vlnplot.pdf"))
-  VlnPlot(perturb_QC, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3, pt.size = 0.1)
+  p2<- VlnPlot(perturb_QC, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3, pt.size = 0.1)
+  print(p2)
   dev.off()
 
-  saveRDS(perturb_QC,file=file.path(prefix, "perturb_QC.rds"))
-  saveRDS(perturb,file=file.path(prefix, "perturb.rds"))
+  #saveRDS(perturb_QC,file=file.path(prefix, "perturb_QC.rds"))
   return(perturb_QC)
 }

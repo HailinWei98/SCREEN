@@ -4,7 +4,7 @@
 \alias{sgRNA_quality_plot}
 \title{function definitions ##### Plot for sgRNA information.}
 \usage{
-sgRNA_quality_plot(sg_dir, mtx_dir, label = "", prefix = "./")
+sgRNA_quality_plot(sg_dir, mtx_dir, LABEL = "", prefix = "./")
 }
 \description{
 function definitions ##### Plot for sgRNA information.
