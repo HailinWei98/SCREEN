@@ -1,4 +1,4 @@
-# scCRISPR
+# SCREEN
 SCREEN(Single-cell CRISPR scREen data analyses and pErturbation modeliNg) is a pipeline to visualize the quality of single-cell CRISPR screens RNA-seq/ATAC-seq datasets. SCREEN has integrated three R functions: scMAGeCK_lr, Mixscape and plot function of cicero. These functions are used to estimate the regulatory score between perturbations and genes, estimate the perturbation efficiency and visualize enhancer regulatory potential, respectively.
 
 ## Dependency
