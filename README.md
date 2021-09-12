@@ -18,5 +18,5 @@ SCREEN(Single-cell CRISPR scREen data analyses and pErturbation modeliNg) is a p
 	replicate: Replicate information.Default no replicate.
 	features: Features used to scale.Default high variable genes.
 
-### Run scCRISPR pipeline with one command
+### Run SCREEN pipeline with one command
 	snakemake --snakefile scCRISPR.snakefile --cores 4 --configfile config.yaml --config mtx_dir=input_matrix sg_dir=sgRNA_information prefix=prefix function=function_to_use
