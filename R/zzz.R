@@ -1,5 +1,5 @@
 screen_default_options <- list(
-  SCREEN.Gviz = TRUE
+  Gviz = TRUE
 )
 
 .onLoad <- function(libname, pkgname) {

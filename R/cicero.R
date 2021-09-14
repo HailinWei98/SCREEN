@@ -1,8 +1,8 @@
 #' @export
 #' @import Gviz
 #' @import ensembldb
-ciceroPlot<- function(score_dir, pval_dir, species = "Hs", version = "v75", annotations = NULL, 
-                      p_val_cut = 0.05, score_cut = 0, selected, upstream = 2000000, downstream = 2000000, 
+ciceroPlot<- function(score_dir, pval_dir, selected = NULL, species = "Hs", version = "v75", gene_annotations = NULL, 
+                      p_val_cut = 0.05, score_cut = 0, upstream = 2000000, downstream = 2000000, 
                       track_size = c(1,.3,.2,.3), include_axis_track = TRUE, connection_color = "#7F7CAF",
                       connection_color_legend = TRUE, connection_width = 2, connection_ymax = NULL, 
                       gene_model_color = "#81D2C7", alpha_by_coaccess = FALSE, 
@@ -12,7 +12,7 @@ ciceroPlot<- function(score_dir, pval_dir, species = "Hs", version = "v75", anno
     
     # get genome annotations
     
-    if(is.null(annotations)){
+    if(is.null(gene_annotations)){
         if(species == "Hs"){
             if(version == "v75"){
                 a <- genes(EnsDb.Hsapiens.v75)
@@ -32,7 +32,7 @@ ciceroPlot<- function(score_dir, pval_dir, species = "Hs", version = "v75", anno
         gene_anno$chromosome <- paste0("chr", gene_anno$seqnames)
         gene_anno$transcript <- gene_anno$symbol
     }else{
-        gene_anno <- annotations
+        gene_anno <- gene_annotations
             }
         
     #get score and p-value
@@ -48,136 +48,90 @@ ciceroPlot<- function(score_dir, pval_dir, species = "Hs", version = "v75", anno
         pval <- pval_dir
     }
     
-    #get information from selected enhancer
-    
-    chr<- unlist(strsplit(selected, "[.|:|-]"))[1]
-    start<- as.numeric(unlist(strsplit(selected, "[.|:|-]"))[2])
-    end<- as.numeric(unlist(strsplit(selected, "[.|:|-]"))[3])
-        
-    #extend region
-    
-    minbp<- start - upstream
-    maxbp<- end + downstream
-    
-    #get gene model
-
-    gene_model <- gene_anno
-    gene_model <- gene_model[!is.na(gene_model$chromosome) & 
-                             !is.na(gene_model$start) &
-                             !is.na(gene_model$end) &
-                             !is.na(gene_model$strand) &
-                             !is.na(gene_model$transcript), ]
-    gene_model <- gene_model[gene_model$chromosome == chr &
-                   ((gene_model$start > minbp & gene_model$start < maxbp) |
-                    (gene_model$end > minbp & gene_model$end < maxbp) |
-                    (gene_model$start < minbp & gene_model$end > maxbp)), ]
-    gene_model <- gene_model[gene_model$transcript %in% rownames(score), ]
-    
-    #get score and p-value of selected enhancer
-    
-    conn_input <- data.frame(score = score[,selected], pval = pval[, selected])
-    rownames(conn_input) <- rownames(score)
-    conn_input <- conn_input[rownames(conn_input) %in% gene_model$transcript, ]
-    conn_input <- subset(conn_input, ((score > score_cut) | (score < -score_cut)) & pval < p_val_cut)
-    gene_model <- subset(gene_model, transcript %in% rownames(conn_input))
-    grtrack <- Gviz::GeneRegionTrack(gene_model, chromosome = chr, geneSymbols = TRUE,
-                                     name = "", fill = "#81D2C7",
-                                     col = "#81D2C7",  fontcolor = "black",
-                                     fontcolor.group = "black", fontsize.group = 6,
-                                     fontsize = 6, shape = gene_model_shape, 
-                                     collapseTranscripts = "longest",cex.group = 1)
-        
-    #generate peak connection data frame
-        
-    peak <- gsub("\\.", "-", selected)
-    connection_df <- data.frame()
-    for(i in 1:nrow(gene_model)){
-        gene <- gene_model[i, ]
-        grange <- paste(chr, gene$start, gene$end, sep = "-")
-        coaccess <- conn_input[gene$transcript, "score"]
-        connection_df <- rbind(connection_df, c(grange, peak, as.numeric(coaccess)))
+    if(!is.null(selected)){
+        selected <- colnames(score)[which(colnames(score) != "NegCtrl")]
+        selected <- selected[grep("^chr", selected)]
     }
-    colnames(connection_df) <- c("Peak1", "Peak2", "coaccess")
-    connection_df$peak_color <- "black"
-    sub <- generate_plotting_subset(connection_df, chr, minbp, maxbp)
-    sub$coaccess <- as.numeric(sub$coaccess)
+    if(is.character(selected)){
+        if(length(selected) == 1){          
+            #get score and p-value of selected enhancer
+                
+            conn_input <- data.frame(score = score[, selected], pval = pval[, selected])
+            rownames(conn_input) <- rownames(score)
+            conn_input <- subset(conn_input, ((score > score_cut) | (score < -score_cut)) & pval < p_val_cut)
+            if(nrow(conn_input) == 0){
+                stop(paste("Cannot find genes passed threshold in ", selected, " scMAGeCK results", sep = "'"))
+            }
+            #get information from selected enhancer
     
-    #get grang of peaks and generate dataTrack
-    gr <- make_peak_track(sub)
-    bk <- c(seq(-1, -0.1, by = 0.01),seq(0, 1, by = 0.01))
-    dk <- c(colorRampPalette(colors = c("blue","white"))(length(bk)/2),
-           colorRampPalette(colors = c("white","red"))(length(bk)/2))
-    dtrack <- DataTrack(gr, type = c("heatmap"), chromosome = chr, gradient = dk, 
-                   ylim = c(-1 , 1), yTicksAt = c(-1,-0.5,0,0.5), name = "scMAGeCK score")
+            chr<- unlist(strsplit(selected, "[.|:|-]"))[1]
+            start<- as.numeric(unlist(strsplit(selected, "[.|:|-]"))[2])
+            end<- as.numeric(unlist(strsplit(selected, "[.|:|-]"))[3])
+        
+            #extend region
     
-    #rename sub
+            minbp<- start - upstream
+            maxbp<- end + downstream
+            
+            #get results
+            
+            gg <- get_results(chr, start, end, minbp, maxbp, gene_anno, track_size,
+                              conn_input, connection_color, include_axis_track, score, 
+                              score_cut, connection_width, alpha_by_coaccess, color_names)
+            if(is.null(gg)){
+                message("Cannot find gene model close to selected region.")
+            }
+            gg <- gg + labs(title = selected) + 
+                            theme(plot.title = element_text(hjust = 0.5), text = element_text(size = 12,face = "bold"))
+            return(gg)
+        }else{
+                
+            #get results for all perturbations
+                
+            j <- 0
+            results <- list()
+            for(perturb in selected){
+                
+                #get score and p-value of selected enhancer
+                
+                conn_input <- data.frame(score = score[, perturb], pval = pval[, perturb])
+                rownames(conn_input) <- rownames(score)
+                conn_input <- subset(conn_input, ((score > score_cut) | (score < -score_cut)) & pval < p_val_cut)
+                if(nrow(conn_input) == 0){
+                    warning(paste("Cannot find genes passed threshold in ", perturb, " scMAGeCK results", sep = "'"))
+                        next
+                }
+                
+                #get information from selected enhancer
     
-    if (!nrow(sub) == 0) {
-        if (connection_color %in% names(sub)) {
-          color_levs <- levels(as.factor(sub[,connection_color]))
-          color_names <- rep("temp", length(color_levs))
-          names(color_names) <- color_levs
-          new_connection_color <- get_colors(sub[,connection_color])
-          for(n in color_levs) {
-              color_names[n] <-
-                  new_connection_color[which(sub[,connection_color] == n)[1]]
-          }
-          connection_color <- new_connection_color
+                chr<- unlist(strsplit(perturb, "[.|:|-]"))[1]
+                start<- as.numeric(unlist(strsplit(perturb, "[.|:|-]"))[2])
+                end<- as.numeric(unlist(strsplit(perturb, "[.|:|-]"))[3])
+        
+                #extend region
+    
+                minbp<- start - upstream
+                maxbp<- end + downstream
+            
+                #get results
+            
+                gg <- get_results(chr, start, end, minbp, maxbp, gene_anno, track_size,
+                                  conn_input, connection_color, include_axis_track, score, 
+                                  score_cut, connection_width, alpha_by_coaccess, color_names)
+                if(is.null(gg)){
+                    next
+                }
+                j <- j + 1
+                gg <- gg + labs(title = perturb) + 
+                            theme(plot.title = element_text(hjust = 0.5), text = element_text(size = 12,face = "bold"))
+                results[[j]] <- gg
+                names(results)[j] <- perturb
+            }
+            return(results)
         }
-        sub$color <- connection_color
-
-        sub$width <- connection_width
-
-        sub <- sub[,c("chr", "bp1", "bp2", "chr_2", "bp1_2", "bp2_2", "coaccess",
-                      "width", "color")]
-        names(sub) <- c("chrom1","start1","stop1","chrom2","start2","stop2",
-                        "height", "width", "color")
-      }else {
-        warning("No connections above score_cutoff")
-      }
-    sub$height <- abs(sub$height)
-    ctrack <- CustomTrack(plottingFunction = function(GdObject, prepare) {
-        Gviz::displayPars(GdObject) <- list(ylim = c(0, max(abs(as.numeric(connection_df$coaccess)))))
-        if(!prepare) {
-          plotBedpe(sub, chrom = chr, chromstart = minbp, chromend = maxbp,
-                    max(abs(as.numeric(connection_df$coaccess))), score_cut,
-                    connection_width, alpha_by_coaccess,
-                    color_names)
-         }
-        return(invisible(GdObject))}, name = "regulatory potential", fontsize.group = 6,fontsize = 12, , cex.title = 1.3)
-        
-    #in order to show all the gene names
-        
-    minbp <- minbp - 500000
-    
-    #get atrack
-    
-    atrack <- Gviz::GenomeAxisTrack(fontsize = 6, name = "")
-    
-    #plot
-        
-    if(include_axis_track == TRUE){
-        gg <- as.ggplot(function()plotTracks(list(ctrack,  dtrack, atrack, grtrack), 
-                                            title.width = 1.3, showTitle = TRUE, from = minbp, to = maxbp, 
-                                            chromosome = chr, sizes = track_size, 
-                                            transcriptAnnotation = "symbol", background.title = "transparent",
-                                            col.border.title="transparent", lwd.border.title = "transparent",
-                                            col.axis = "black", fontsize.group = 6, col.title="black",
-                                            fontcolor.legend = "black"))
-        gg <- gg + labs(title = selected) + 
-                       theme(plot.title=element_text(hjust=0.5), text=element_text(size=12,face = "bold"))
     }else{
-        gg <- as.ggplot(function()plotTracks(list(ctrack,  dtrack, grtrack), 
-                                            title.width = 1.3, showTitle = TRUE, from = minbp, to = maxbp, 
-                                            chromosome = chr, sizes = track_size, 
-                                            transcriptAnnotation = "symbol", background.title = "transparent",
-                                            col.border.title="transparent", lwd.border.title = "transparent",
-                                            col.axis = "black", fontsize.group = 6, col.title="black",
-                                            fontcolor.legend = "black"))
-        gg <- gg + labs(title = selected) + 
-                       theme(plot.title=element_text(hjust=0.5), text=element_text(size=12,face = "bold"))
+        stop("Please input correct format of selected perturbations")
     }
-    return(gg)
 }
     
 generate_plotting_subset <- function(connections, chr, minbp, maxbp) {
@@ -361,56 +315,133 @@ plotpair <- function(start, end, height, totalrange,
                                   alpha = (alpha*.9 + .1),fontsizecex = 10))
 }
 
+get_results <- function(chr, start, end, minbp, maxbp, gene_anno, track_size,
+                        conn_input, connection_color, include_axis_track, score, 
+                        score_cut, connection_width, alpha_by_coaccess, color_names){
+    #get gene model
+
+    gene_model <- gene_anno
+    gene_model <- gene_model[!is.na(gene_model$chromosome) & 
+                             !is.na(gene_model$start) &
+                             !is.na(gene_model$end) &
+                             !is.na(gene_model$strand) &
+                             !is.na(gene_model$transcript), ]
+    gene_model <- gene_model[gene_model$chromosome == chr &
+                             ((gene_model$start > minbp & gene_model$start < maxbp) |
+                              (gene_model$end > minbp & gene_model$end < maxbp) |
+                              (gene_model$start < minbp & gene_model$end > maxbp)), ]
+    gene_model <- gene_model[gene_model$transcript %in% rownames(score), ]
+    
+
+    gene_model <- subset(gene_model, transcript %in% rownames(conn_input))
+    grtrack <- Gviz::GeneRegionTrack(gene_model, chromosome = chr, geneSymbols = TRUE,
+                                     name = "", fill = "#81D2C7",
+                                     col = "#81D2C7",  fontcolor = "black",
+                                     fontcolor.group = "black", fontsize.group = 6,
+                                     fontsize = 6, shape = gene_model_shape, 
+                                     collapseTranscripts = "longest",cex.group = 1)
+        
+    #generate peak connection data frame
+        
+    peak <- paste(chr, start, end, sep = "-")
+    connection_df <- data.frame()
+    if(nrow(gene_model) == 0){
+        return(NULL)
+    }
+    for(j in 1:nrow(gene_model)){
+        gene <- gene_model[j, ]
+        grange <- paste(chr, gene$start, gene$end, sep = "-")
+        coaccess <- conn_input[gene$transcript, "score"]
+        connection_df <- rbind(connection_df, c(grange, peak, as.numeric(coaccess)))
+    }
+    colnames(connection_df) <- c("Peak1", "Peak2", "coaccess")
+    connection_df$peak_color <- "black"
+    sub <- generate_plotting_subset(connection_df, chr, minbp, maxbp)
+    sub$coaccess <- as.numeric(sub$coaccess)
+    
+    #get grang of peaks and generate dataTrack
+    gr <- make_peak_track(sub)
+    bk <- c(seq(-1, -0.1, by = 0.01),seq(0, 1, by = 0.01))
+    dk <- c(colorRampPalette(colors = c("blue","white"))(length(bk)/2),
+            colorRampPalette(colors = c("white","red"))(length(bk)/2))
+    dtrack <- DataTrack(gr, type = c("heatmap"), chromosome = chr, gradient = dk, 
+                        ylim = c(-1 , 1), yTicksAt = c(-1, -0.5, 0, 0.5), name = "scMAGeCK score")
+    
+    #rename sub
+    
+    if (!nrow(sub) == 0) {
+        if (connection_color %in% names(sub)) {
+            color_levs <- levels(as.factor(sub[ ,connection_color]))
+            color_names <- rep("temp", length(color_levs))
+            names(color_names) <- color_levs
+            new_connection_color <- get_colors(sub[ ,connection_color])
+            for(n in color_levs) {
+                color_names[n] <- new_connection_color[which(sub[,connection_color] == n)[1]]
+            }
+            connection_color <- new_connection_color
+        }
+        sub$color <- connection_color
+
+        sub$width <- connection_width
+
+        sub <- sub[ ,c("chr", "bp1", "bp2", "chr_2", "bp1_2", "bp2_2", "coaccess",
+                      "width", "color")]
+        names(sub) <- c("chrom1", "start1", "stop1", "chrom2", "start2", "stop2",
+                        "height", "width", "color")
+        }else {
+        warning("No connections above score_cutoff")
+        }
+    sub$height <- abs(sub$height)
+    ctrack <- CustomTrack(plottingFunction = function(GdObject, prepare) {
+        Gviz::displayPars(GdObject) <- list(ylim = c(0, max(abs(as.numeric(connection_df$coaccess)))))
+        if(!prepare) {
+            plotBedpe(sub, chrom = chr, chromstart = minbp, chromend = maxbp,
+                      max(abs(as.numeric(connection_df$coaccess))), score_cut,
+                      connection_width, alpha_by_coaccess, color_names)
+            }
+        return(invisible(GdObject))}, name = "regulatory potential", fontsize.group = 6,fontsize = 12, , cex.title = 1.3)
+        
+    #in order to show all the gene names
+    
+    minbp <- minbp - 500000
+    
+    #get atrack
+    
+    atrack <- Gviz::GenomeAxisTrack(fontsize = 6, name = "")
+        
+    #plot
+    
+    if(include_axis_track == TRUE){
+        gg <- as.ggplot(function()plotTracks(list(ctrack, dtrack, atrack, grtrack), 
+                                             title.width = 1.3, showTitle = TRUE, from = minbp, to = maxbp, 
+                                             chromosome = chr, sizes = track_size, 
+                                             transcriptAnnotation = "symbol", background.title = "transparent",
+                                             col.border.title="transparent", lwd.border.title = "transparent",
+                                             col.axis = "black", fontsize.group = 6, col.title="black",
+                                             fontcolor.legend = "black"))
+    }else{
+        gg <- as.ggplot(function()plotTracks(list(ctrack, dtrack, grtrack), 
+                                             title.width = 1.3, showTitle = TRUE, from = minbp, to = maxbp, 
+                                             chromosome = chr, sizes = track_size, 
+                                             transcriptAnnotation = "symbol", background.title = "transparent",
+                                             col.border.title="transparent", lwd.border.title = "transparent",
+                                             col.axis = "black", fontsize.group = 6, col.title="black",
+                                             fontcolor.legend = "black"))
+    }
+    return(gg)
+}
 #' @export    
     
-ATACciceroPlot<- function(object, score_dir, pval_dir, species = "Hs", version = "v75", gene_annotations = NULL, 
-                          pro_annotations = NULL, pro_up = 2000, pro_down = 200, overlap_cut = 0, p_val_cut = 0.05,
-                          score_cut = 0, p_adj_cut = 0.05, logFC_cut = 1, selected, NTC = "NTC", min.pct = 0.2,
-                          upstream = 2000000, downstream = 2000000, test.use = "wilcox", track_size = c(1,.3,.2,.3), 
-                          include_axis_track = TRUE, connection_color = "#7F7CAF", connection_color_legend = TRUE,
-                          connection_width = 2,connection_ymax = NULL, gene_model_color = "#81D2C7", 
-                          alpha_by_coaccess = FALSE, gene_model_shape = c("smallArrow", "box")){
+ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species = "Hs", version = "v75",
+                          gene_annotations = NULL, pro_annotations = NULL, pro_up = 3000, pro_down = 0, 
+                          overlap_cut = 0, p_val_cut = 0.05, score_cut = 0, p_adj_cut = 0.05, logFC_cut = 1, 
+                          NTC = "NTC", min.pct = 0.2, upstream = 2000000, downstream = 2000000, test.use = "wilcox", 
+                          track_size = c(1,.3,.2,.3), include_axis_track = TRUE, connection_color = "#7F7CAF", 
+                          connection_color_legend = TRUE, connection_width = 2,connection_ymax = NULL, 
+                          gene_model_color = "#81D2C7", alpha_by_coaccess = FALSE, 
+                          gene_model_shape = c("smallArrow", "box")){
     
     color_names = NULL
-    
-    #get peak matrix
-    
-    if(is.character(object)){
-        peak <- readRDS(object)
-    }else{
-        peak <- object
-    }
-    
-    #rename ident
-    
-    if("perturbations" %in% colnames(peak@meta.data)){
-        if(selected %in% peak$perturbations){
-            peak@active.ident<- peak$perturbations
-        }else{
-            stop(paste("Cannot find ", selected, " in perturbations", sep = "'"))
-        }
-    }else{
-        stop("Cannot find 'perturbations' in object, please renamed it or using 'Add_meta_data' function to add it")
-    }
-    
-    #find DA peaks
-    
-    peak<- RunTFIDF(peak)
-    da_peaks <- FindMarkers(
-        object = peak,
-        ident.1 = selected,
-        ident.2 = NTC,
-        min.pct = min.pct,
-        test.use = test.use
-        )
-    da_peak <- subset(da_peaks, p_val_adj <= p_adj_cut & (avg_log2FC >= logFC_cut | avg_log2FC <= -logFC_cut))
-    if(nrow(da_peak) == 0){
-        stop("Cannot find DA peaks pass threshold")
-    }
-    
-    da_peak$chromosome<- t(data.frame(strsplit(rownames(da_peak), "[.|:|-]")))[ ,1]
-    da_peak$start<- t(data.frame(strsplit(rownames(da_peak), "[.|:|-]")))[ ,2]
-    da_peak$end<- t(data.frame(strsplit(rownames(da_peak), "[.|:|-]")))[ ,3]
     
     # get genome annotations
     
@@ -460,43 +491,7 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, species = "Hs", version =
     }else{
         pro_anno <- pro_annotations
             }
-    
-    #get enhancer list
         
-    enhancer_list<- data.frame()
-    for(i in 1:nrow(da_peak)){
-        chr <- da_peak[i, "chromosome"]
-        start <- as.numeric(da_peak[i, "start"])
-        end <- as.numeric(da_peak[i, "end"])
-        minbp <- start - 2*(pro_up + pro_down)
-        maxbp <- end + 2*(pro_up + pro_down)
-        peak_model <- pro_anno
-        peak_model <- peak_model[!is.na(peak_model$chromosome) & 
-                             !is.na(peak_model$start) &
-                             !is.na(peak_model$end) &
-                             !is.na(peak_model$strand),]
-        peak_model <- peak_model[peak_model$chromosome == chr &
-                   ((peak_model$start > minbp & peak_model$start < maxbp) |
-                    (peak_model$end > minbp & peak_model$end < maxbp) |
-                    (peak_model$start < minbp & peak_model$end > maxbp)),]
-        if(nrow(peak_model) == 0){
-            enhancer_list <- rbind(enhancer_list, c(chr, start, end))
-        }else{
-            pro_seq <- apply(peak_model[,c("start", "end")], 1, function(x){seq(x[1], x[2])})
-            overlap <- length(intersect(seq(start, end), pro_seq))
-            if(overlap <= overlap_cut){
-                enhancer_list <- rbind(enhancer_list, c(chr, start, end))
-            }
-        }
-    }
-    if(nrow(enhancer_list != 0)){
-        colnames(enhancer_list) <- c("chromosome", "start", "end")
-        rownames(enhancer_list) <- paste(enhancer_list$chromosome, enhancer_list$start, enhancer_list$end, sep = "-")
-    }else{
-        enhancer_list <- da_peak[, c("chromosome", "start", "end")]
-        warning("All DA peaks has overlap with promoters, using all DA peaks passed threshold as input list")
-    }
-    
     #get score and p-value
     
     if(is.character(score_dir)){
@@ -510,152 +505,141 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, species = "Hs", version =
         pval <- pval_dir
     }    
     
-    #get score and p-value of selected enhancer
-    
-    conn_input <- data.frame(score = score[, selected], pval = pval[, selected])
-    rownames(conn_input) <- rownames(score)
-    #conn_input <- conn_input[rownames(conn_input) %in% gene_model$transcript, ]
-    conn_input <- subset(conn_input, ((score > score_cut) | (score < -score_cut)) & pval < p_val_cut)    
-    if(nrow(conn_input) == 0){
-        stop("Cannot find genes passed threshold")
-    }
-    
     #create store list
     
     results <- list()
         
-    #get results for all candidate enhancer
+    #get peaks
     
-    for(i in 1:nrow(enhancer_list)){
-        chr <- enhancer_list[i, "chromosome"]
-        start <- as.numeric(enhancer_list[i, "start"])
-        end <- as.numeric(enhancer_list[i, "end"])
+    object <- TFIDF(object)
         
-        #extend region
+    #get selected TFs list
     
-        minbp<- start - upstream
-        maxbp<- end + downstream
-    
-        #get gene model
-
-        gene_model <- gene_anno
-        gene_model <- gene_model[!is.na(gene_model$chromosome) & 
-                                 !is.na(gene_model$start) &
-                                 !is.na(gene_model$end) &
-                                 !is.na(gene_model$strand) &
-                                 !is.na(gene_model$transcript), ]
-        gene_model <- gene_model[gene_model$chromosome == chr &
-                       ((gene_model$start > minbp & gene_model$start < maxbp) |
-                        (gene_model$end > minbp & gene_model$end < maxbp) |
-                        (gene_model$start < minbp & gene_model$end > maxbp)), ]
-        gene_model <- gene_model[gene_model$transcript %in% rownames(score), ]
-    
-
-        gene_model <- subset(gene_model, transcript %in% rownames(conn_input))
-        grtrack <- Gviz::GeneRegionTrack(gene_model, chromosome = chr, geneSymbols = TRUE,
-                                         name = "", fill = "#81D2C7",
-                                         col = "#81D2C7",  fontcolor = "black",
-                                         fontcolor.group = "black", fontsize.group = 6,
-                                         fontsize = 6, shape = gene_model_shape, 
-                                         collapseTranscripts = "longest",cex.group = 1)
-        
-        #generate peak connection data frame
-        
-        peak <- paste(chr, start, end, sep = "-")
-        connection_df <- data.frame()
-        if(nrow(gene_model) == 0){
-            results[[i]] <- "No results"
-            names(results)[i] <- peak
-            next
-        }
-        for(j in 1:nrow(gene_model)){
-            gene <- gene_model[j, ]
-            grange <- paste(chr, gene$start, gene$end, sep = "-")
-            coaccess <- conn_input[gene$transcript, "score"]
-            connection_df <- rbind(connection_df, c(grange, peak, as.numeric(coaccess)))
-        }
-        colnames(connection_df) <- c("Peak1", "Peak2", "coaccess")
-        connection_df$peak_color <- "black"
-        sub <- generate_plotting_subset(connection_df, chr, minbp, maxbp)
-        sub$coaccess <- as.numeric(sub$coaccess)
-    
-        #get grang of peaks and generate dataTrack
-        gr <- make_peak_track(sub)
-        bk <- c(seq(-1, -0.1, by = 0.01),seq(0, 1, by = 0.01))
-        dk <- c(colorRampPalette(colors = c("blue","white"))(length(bk)/2),
-               colorRampPalette(colors = c("white","red"))(length(bk)/2))
-        dtrack <- DataTrack(gr, type = c("heatmap"), chromosome = chr, gradient = dk, 
-                            ylim = c(-1 , 1), yTicksAt = c(-1,-0.5,0,0.5), name = "scMAGeCK score")
-    
-        #rename sub
-    
-        if (!nrow(sub) == 0) {
-            if (connection_color %in% names(sub)) {
-              color_levs <- levels(as.factor(sub[,connection_color]))
-              color_names <- rep("temp", length(color_levs))
-              names(color_names) <- color_levs
-              new_connection_color <- get_colors(sub[,connection_color])
-              for(n in color_levs) {
-                  color_names[n] <-
-                      new_connection_color[which(sub[,connection_color] == n)[1]]
-              }
-              connection_color <- new_connection_color
+    if(is.null(selected)){
+        selected <- colnames(score)[which(colnames(score) != "NegCtrl")]
+    }
+    if(is.character(selected)){
+        if(length(selected) == 1){
+            #get DA peaks and enhancer list
+                
+            da_peak <- DApeaks(object, selected, NTC, min.pct, test.use, p_adj_cut, logFC_cut)
+            if(is.null(da_peak)){
+                stop(paste("Cannot find DA peaks pass threshold in ", selected, " FindMarkers results", sep = "'"))
+            }else{
+                enhancer_list <- enhancer(da_peak, pro_anno, overlap_cut, pro_up = pro_up, pro_down = pro_down)
             }
-            sub$color <- connection_color
+            if(nrow(da_peak) == nrow(enhancer_list)){
+                warning("All DA peaks has overlap with promoters, using all DA peaks passed threshold as input list")
+            }
 
-            sub$width <- connection_width
-
-            sub <- sub[,c("chr", "bp1", "bp2", "chr_2", "bp1_2", "bp2_2", "coaccess",
-                      "width", "color")]
-            names(sub) <- c("chrom1","start1","stop1","chrom2","start2","stop2",
-                        "height", "width", "color")
-          }else {
-            warning("No connections above score_cutoff")
-          }
-        sub$height <- abs(sub$height)
-        ctrack <- CustomTrack(plottingFunction = function(GdObject, prepare) {
-            Gviz::displayPars(GdObject) <- list(ylim = c(0, max(abs(as.numeric(connection_df$coaccess)))))
-            if(!prepare) {
-              plotBedpe(sub, chrom = chr, chromstart = minbp, chromend = maxbp,
-                        max(abs(as.numeric(connection_df$coaccess))), score_cut,
-                        connection_width, alpha_by_coaccess,
-                        color_names)
-             }
-            return(invisible(GdObject))}, name = "regulatory potential", fontsize.group = 6,fontsize = 12, , cex.title = 1.3)
-        
-        #in order to show all the gene names
-        
-        minbp <- minbp - 500000
-    
-        #get atrack
-    
-        atrack <- Gviz::GenomeAxisTrack(fontsize = 6, name = "")
-        
-        #plot
-        
-        if(include_axis_track == TRUE){
-        gg <- as.ggplot(function()plotTracks(list(ctrack,  dtrack, atrack, grtrack), 
-                                            title.width = 1.3, showTitle = TRUE, from = minbp, to = maxbp, 
-                                            chromosome = chr, sizes = track_size, 
-                                            transcriptAnnotation = "symbol", background.title = "transparent",
-                                            col.border.title="transparent", lwd.border.title = "transparent",
-                                            col.axis = "black", fontsize.group = 6, col.title="black",
-                                            fontcolor.legend = "black"))
-        gg <- gg + labs(title = paste(selected, peak, sep = ":")) + 
-                       theme(plot.title=element_text(hjust=0.5), text=element_text(size=12,face = "bold"))
+                
+            #get score and p-value of selected enhancer
+                
+            conn_input <- data.frame(score = score[, selected], pval = pval[, selected])
+            rownames(conn_input) <- rownames(score)
+            conn_input <- subset(conn_input, ((score > score_cut) | (score < -score_cut)) & pval < p_val_cut)
+            if(nrow(conn_input) == 0){
+                stop(paste("Cannot find genes passed threshold in ", selected, " scMAGeCK results", sep = "'"))
+            }
+            
+            #get results for all candidate enhancer
+                
+            j <- 0
+            for(i in 1:nrow(enhancer_list)){
+                chr <- enhancer_list[i, "chromosome"]
+                start <- as.numeric(enhancer_list[i, "start"])
+                end <- as.numeric(enhancer_list[i, "end"])
+                    
+                #extend region
+                    
+                minbp<- start - upstream
+                maxbp<- end + downstream
+                    
+                #get results
+                    
+                gg <- get_results(chr, start, end, minbp, maxbp, gene_anno, track_size,
+                                  conn_input, connection_color, include_axis_track, score, 
+                                  score_cut, connection_width, alpha_by_coaccess, color_names)
+                if(is.null(gg)){
+                    next
+                }
+                j <- j + 1
+                peak <- paste(chr, start, end, sep = "-")
+                gg <- gg + labs(title = paste(selected, peak, sep = ":")) + 
+                theme(plot.title = element_text(hjust = 0.5), text = element_text(size = 12,face = "bold"))
+                results[[j]] <- gg
+                names(results)[j] <- peak
+            }
         }else{
-        gg <- as.ggplot(function()plotTracks(list(ctrack,  dtrack, grtrack), 
-                                            title.width = 1.3, showTitle = TRUE, from = minbp, to = maxbp, 
-                                            chromosome = chr, sizes = track_size, 
-                                            transcriptAnnotation = "symbol", background.title = "transparent",
-                                            col.border.title="transparent", lwd.border.title = "transparent",
-                                            col.axis = "black", fontsize.group = 6, col.title="black",
-                                            fontcolor.legend = "black"))
-        gg <- gg + labs(title = paste(selected, peak, sep = ":")) + 
-                       theme(plot.title=element_text(hjust=0.5), text=element_text(size=12,face = "bold"))
-        }
-        results[[i]] <- gg
-        names(results)[i] <- peak
+                
+            #get results for all perturbations
+                
+            k <- 0
+            for(TF in selected){
+                #get DA peaks and enhancer list
+                    
+                da_peak <- DApeaks(object, selected = TF, NTC, min.pct, test.use, p_adj_cut, logFC_cut)
+                if(is.null(da_peak)){
+                    warning(paste("Cannot find DA peaks pass threshold in ", 
+                                  TF, " FindMarkers results", sep = "'"))
+                    next
+                }else{
+                    enhancer_list <- enhancer(da_peak, pro_anno, overlap_cut, pro_up = pro_up, pro_down = pro_down)
+                }
+                if(nrow(da_peak) == nrow(enhancer_list)){
+                    warning(paste("All DA peaks has overlap with promoters in ", TF, ", using all DA peaks passed threshold as input list", sep = "'"))
+                }
+
+                
+                #get score and p-value of selected enhancer
+                
+                conn_input <- data.frame(score = score[, TF], pval = pval[, TF])
+                rownames(conn_input) <- rownames(score)
+                conn_input <- subset(conn_input, ((score > score_cut) | (score < -score_cut)) & pval < p_val_cut)
+                if(nrow(conn_input) == 0){
+                    warning(paste("Cannot find genes passed threshold in ", TF, " scMAGeCK results", sep = "'"))
+                        next
+                }
+                
+                #get results for all candidate enhancer
+                    
+                sub_results <- list()
+                
+                j <- 0
+                for(i in 1:nrow(enhancer_list)){
+                    chr <- enhancer_list[i, "chromosome"]
+                    start <- as.numeric(enhancer_list[i, "start"])
+                    end <- as.numeric(enhancer_list[i, "end"])
+                    
+                    #extend region
+                    
+                    minbp<- start - upstream
+                    maxbp<- end + downstream
+                    
+                    #get results
+                    
+                    gg <- get_results(chr, start, end, minbp, maxbp, gene_anno, track_size,
+                                      conn_input, connection_color, include_axis_track, score, 
+                                      score_cut, connection_width, alpha_by_coaccess, color_names)
+                    if(is.null(gg)){
+                        next
+                    }
+                    j <- j + 1
+                    peak <- paste(chr, start, end, sep = "-")
+                    gg <- gg + labs(title = paste(TF, peak, sep = ":")) + 
+                            theme(plot.title = element_text(hjust = 0.5), text = element_text(size = 12,face = "bold"))
+                    sub_results[[j]] <- gg
+                    names(sub_results)[j] <- peak
+                }
+                if(length(sub_results) != 0){
+                    k <- k + 1
+                    results[[k]] <- sub_results
+                    names(results)[k] <- TF
+                }
+            }
         }
         return(results)
+    }else{
+        stop("Please input correct format of selected perturbations")
+    }
 }

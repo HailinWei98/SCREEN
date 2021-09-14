@@ -3,7 +3,7 @@
 #' @export
 
 IntegratedMixscape<- function(sg_dir, mtx_dir,
-                              NTC = "NTC", replicate = 1, prefix = "./"){
+                              NTC = "NTC", prefix = "./", label = ""){
   custom_theme <- theme(
     plot.title = element_text(size=16, hjust = 0.5),
     legend.key.size = unit(0.7, "cm"),
@@ -15,23 +15,28 @@ IntegratedMixscape<- function(sg_dir, mtx_dir,
   } else {
     eccite <- mtx_dir
   }
-  if(replicate!=1){
-    replicate<- read.table(replicate,header=F)
-    replicate<- as.vector(replicate[,1])
-    names(replicate)<- colnames(eccite)
-    eccite<- AddMetaData(eccite,as.factor(replicate),col.name = "replicate")
-  }else{
-    eccite<- AddMetaData(eccite,as.factor(replicate),col.name = "replicate")
-  }
+    
+    #replicate information
+    
+    if(!("replicate" %in% colnames(eccite@meta.data))){
+        stop("Please add replicate information to the SeuratObject first.")
+    }
+    
   #add barcode information
+    
   sg_lib<- read.table(sg_dir,header=T)
   sg_in_cell<- data.frame(plyr::count(sg_lib$cell))
   sg_lib<- subset(sg_lib,cell %in% subset(sg_in_cell,freq==1)[,1])
   rownames(sg_lib)<- sg_lib$cell
   eccite<- eccite[,colnames(eccite) %in% sg_lib$cell]
+    
+    #if too few cells
+    if(ncol(eccite) <= 20){
+        stop("Too few cells in input matrix")
+    }
   NT<- data.frame(cell = colnames(eccite),nt = "a")
   NT$nt<- sg_lib[NT$cell,]$barcode
-  eccite <- AddMetaData(eccite,as.factor(NT$nt),col.name = "NT")
+  eccite <- AddMetaData(eccite, as.factor(NT$nt),col.name = "NT")
 
   # Prepare RNA assay for dimensionality reduction:
   # Normalize data, find variable features and scale data.
@@ -93,7 +98,7 @@ IntegratedMixscape<- function(sg_dir, mtx_dir,
     custom_theme
 
   #save plots.
-  pdf(file.path(prefix, "mixscape_before.pdf"))
+  pdf(file.path(prefix, paste(label, "mixscape_before.pdf", sep = "")))
   print(((p1 / p2 + patchwork::plot_layout(guides = 'auto')) | p3 ))
   dev.off()
 
@@ -165,7 +170,7 @@ IntegratedMixscape<- function(sg_dir, mtx_dir,
     custom_theme
 
   #save plots.
-  pdf(file.path(prefix, "mixscape_after.pdf"))
+  pdf(file.path(prefix, paste(label, "mixscape_after.pdf", sep = "")))
   print((q1 / q2 + patchwork::plot_layout(guides = 'auto') | q3))
   dev.off()
 
@@ -182,7 +187,7 @@ IntegratedMixscape<- function(sg_dir, mtx_dir,
     verbose = F,
     prtb.type = "KO")
 
-  saveRDS(eccite,file.path(prefix, "mixscape.rds"))
+  #saveRDS(eccite,file.path(prefix, "mixscape.rds"))
 
   if(length(unique(eccite$mixscape_class.global))==3){
     # Calculate percentage of KO cells for all target gene classes.
@@ -236,6 +241,8 @@ IntegratedMixscape<- function(sg_dir, mtx_dir,
         print(q)
       }
     }
+  }else{
+      return(eccite)
   }
   dev.off()
   return(eccite)
