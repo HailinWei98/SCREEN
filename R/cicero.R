@@ -2,7 +2,7 @@
 #' @import Gviz
 #' @import ensembldb
 ciceroPlot<- function(score_dir, pval_dir, selected = NULL, species = "Hs", version = "v75", gene_annotations = NULL, 
-                      p_val_cut = 0.05, score_cut = 0, upstream = 2000000, downstream = 2000000, 
+                      p_val_cut = 0.05, score_cut = 0, upstream = 2000000, downstream = 2000000,
                       track_size = c(1,.3,.2,.3), include_axis_track = TRUE, connection_color = "#7F7CAF",
                       connection_color_legend = TRUE, connection_width = 2, connection_ymax = NULL, 
                       gene_model_color = "#81D2C7", alpha_by_coaccess = FALSE, 
@@ -48,7 +48,7 @@ ciceroPlot<- function(score_dir, pval_dir, selected = NULL, species = "Hs", vers
         pval <- pval_dir
     }
     
-    if(!is.null(selected)){
+    if(is.null(selected)){
         selected <- colnames(score)[which(colnames(score) != "NegCtrl")]
         selected <- selected[grep("^chr", selected)]
     }
@@ -64,9 +64,10 @@ ciceroPlot<- function(score_dir, pval_dir, selected = NULL, species = "Hs", vers
             }
             #get information from selected enhancer
     
-            chr<- unlist(strsplit(selected, "[.|:|-]"))[1]
-            start<- as.numeric(unlist(strsplit(selected, "[.|:|-]"))[2])
-            end<- as.numeric(unlist(strsplit(selected, "[.|:|-]"))[3])
+            all <- unlist(strsplit(selected, "[.|:|-]"))
+            chr<- all[1]
+            start<- as.numeric(all[2])
+            end<- as.numeric(all[3])
         
             #extend region
     
@@ -79,7 +80,7 @@ ciceroPlot<- function(score_dir, pval_dir, selected = NULL, species = "Hs", vers
                               conn_input, connection_color, include_axis_track, score, 
                               score_cut, connection_width, alpha_by_coaccess, color_names)
             if(is.null(gg)){
-                message("Cannot find gene model close to selected region.")
+                stop("Cannot find gene model close to selected region.")
             }
             gg <- gg + labs(title = selected) + 
                             theme(plot.title = element_text(hjust = 0.5), text = element_text(size = 12,face = "bold"))
@@ -103,10 +104,11 @@ ciceroPlot<- function(score_dir, pval_dir, selected = NULL, species = "Hs", vers
                 }
                 
                 #get information from selected enhancer
-    
-                chr<- unlist(strsplit(perturb, "[.|:|-]"))[1]
-                start<- as.numeric(unlist(strsplit(perturb, "[.|:|-]"))[2])
-                end<- as.numeric(unlist(strsplit(perturb, "[.|:|-]"))[3])
+                
+                all <- unlist(strsplit(perturb, "[.|:|-]"))
+                chr<- all[1]
+                start<- as.numeric(all[2])
+                end<- as.numeric(all[3])
         
                 #extend region
     
@@ -359,7 +361,12 @@ get_results <- function(chr, start, end, minbp, maxbp, gene_anno, track_size,
     sub <- generate_plotting_subset(connection_df, chr, minbp, maxbp)
     sub$coaccess <- as.numeric(sub$coaccess)
     
+    if(nrow(sub) == 0){
+        return(NULL)
+    }
+    
     #get grang of peaks and generate dataTrack
+    
     gr <- make_peak_track(sub)
     bk <- c(seq(-1, -0.1, by = 0.01),seq(0, 1, by = 0.01))
     dk <- c(colorRampPalette(colors = c("blue","white"))(length(bk)/2),
