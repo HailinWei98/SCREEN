@@ -1,6 +1,6 @@
 Package: SCREEN
 Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.91
+Version: 0.0.0.911
 Authors@R: 
     person(given = "First",
            family = "Last",
@@ -8,7 +8,7 @@ Authors@R:
            email = "first.last@example.com",
            comment = c(ORCID = "YOUR-ORCID-ID"))
 Description: What the package does (one paragraph).
-Imports: Seurat, ggplot2, reshape2, patchwork, plyr, dplyr, scales, stringi, stringr
+Imports: Seurat, ggplot2, reshape2, patchwork, plyr, dplyr, scales, stringi, stringr, Gviz, ensembl
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
