@@ -9,9 +9,9 @@ DE_gene_plot(
   pval_dir,
   project = "perturb",
   prefix = "./",
+  label = "",
   p_val_cut = 0.05,
   score_cut = 0.5,
-  label = "",
   ylimit = c(-600, 600, 200)
 )
 }

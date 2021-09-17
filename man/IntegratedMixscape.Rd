@@ -5,7 +5,7 @@
 \title{function definitions ##### Integrated some functions in Seurat as mentioned in
 vignette of Mixscape.Prefer Seurat object after QC.}
 \usage{
-IntegratedMixscape(sg_dir, mtx_dir, NTC = "NTC", replicate = 1, prefix = "./")
+IntegratedMixscape(sg_dir, mtx_dir, NTC = "NTC", prefix = "./", label = "")
 }
 \description{
 function definitions ##### Integrated some functions in Seurat as mentioned in

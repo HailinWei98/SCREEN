@@ -1,3 +1,5 @@
+
+
 #' @export
 #' @import Gviz
 #' @import ensembldb
@@ -76,7 +78,7 @@ ciceroPlot<- function(score_dir, pval_dir, selected = NULL, species = "Hs", vers
             
             #get results
             
-            gg <- get_results(chr, start, end, minbp, maxbp, gene_anno, track_size,
+            gg <- get_results(chr, start, end, minbp, maxbp, gene_anno, track_size, gene_model_shape,
                               conn_input, connection_color, include_axis_track, score, 
                               score_cut, connection_width, alpha_by_coaccess, color_names)
             if(is.null(gg)){
@@ -290,8 +292,8 @@ plotBedpe <- function(bedpedata,
   }
 
   # plot the data
-  grid::grid.function(function(x) list(x=x, y=(score_cut/(ymax))), 
-                      gp=grid::gpar(col="black", lty="dashed", lwd=width)) #
+  grid::grid.function(function(x) list(x = x, y = (score_cut/(ymax))), 
+                      gp = grid::gpar(col = "black", lty = "dashed", lwd = width)) #
   for (row in (seq_len(nrow(bedpedata)))) {
     x1     = bedpedata$pos1[row]
     x2     = bedpedata$pos2[row]
@@ -317,7 +319,7 @@ plotpair <- function(start, end, height, totalrange,
                                   alpha = (alpha*.9 + .1),fontsizecex = 10))
 }
 
-get_results <- function(chr, start, end, minbp, maxbp, gene_anno, track_size,
+get_results <- function(chr, start, end, minbp, maxbp, gene_anno, track_size, gene_model_shape,
                         conn_input, connection_color, include_axis_track, score, 
                         score_cut, connection_width, alpha_by_coaccess, color_names){
     #get gene model
@@ -406,7 +408,7 @@ get_results <- function(chr, start, end, minbp, maxbp, gene_anno, track_size,
                       max(abs(as.numeric(connection_df$coaccess))), score_cut,
                       connection_width, alpha_by_coaccess, color_names)
             }
-        return(invisible(GdObject))}, name = "regulatory potential", fontsize.group = 6,fontsize = 12, , cex.title = 1.3)
+        return(invisible(GdObject))}, name = "regulatory potential", fontsize.group = 6, fontsize = 12, cex.title = 1.3)
         
     #in order to show all the gene names
     
@@ -564,7 +566,7 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
                     
                 #get results
                     
-                gg <- get_results(chr, start, end, minbp, maxbp, gene_anno, track_size,
+                gg <- get_results(chr, start, end, minbp, maxbp, gene_anno, track_size, gene_model_shape,
                                   conn_input, connection_color, include_axis_track, score, 
                                   score_cut, connection_width, alpha_by_coaccess, color_names)
                 if(is.null(gg)){
@@ -625,7 +627,7 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
                     
                     #get results
                     
-                    gg <- get_results(chr, start, end, minbp, maxbp, gene_anno, track_size,
+                    gg <- get_results(chr, start, end, minbp, maxbp, gene_anno, track_size, gene_model_shape,
                                       conn_input, connection_color, include_axis_track, score, 
                                       score_cut, connection_width, alpha_by_coaccess, color_names)
                     if(is.null(gg)){

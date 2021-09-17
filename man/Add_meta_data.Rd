@@ -6,7 +6,7 @@
 percent.mt of each cells to the Seurat object.
 For other downstream function of SCREEN, this step is always needed}
 \usage{
-Add_meta_data(sg_dir, mtx_dir, species = "Hs", prefix = "./", label = "")
+Add_meta_data(sg_dir, mtx_dir, cal.mt = TRUE, species = "Hs", replicate = 1)
 }
 \description{
 function definitions ##### Add perturbations, sgRNA_num and

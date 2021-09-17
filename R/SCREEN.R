@@ -45,7 +45,7 @@ SCREEN <- function(sg_dir, mtx_dir, fragments = NULL, species = "Hs", version = 
             message("Running Mixscape")
             mixscape <- IntegratedMixscape(sg_lib, mtx_QC, NTC, prefix, label)
         }
-        mtx_QC <- normalize_scale(mtx_QC, label, prefix)
+        mtx_QC <- normalize_scale(mtx_QC)
         scaled <- GetAssayData(object = mtx_QC, slot = "scale.data")
         
         message("Save RDS file")
@@ -60,8 +60,8 @@ SCREEN <- function(sg_dir, mtx_dir, fragments = NULL, species = "Hs", version = 
         result <- improved_scmageck_lr(sg_lib, scaled, NTC, select_gene,
                                         LABEL = paste(label, "improved",sep = ""),
                                         permutation, prefix, lambda)
-        score <- result[1]
-        p_val <- result[2]
+        score <- result[[1]]
+        p_val <- result[[2]]
         
         message("Running DE_gene_plot")
         y <- DE_gene_plot(score, p_val, project,
@@ -112,7 +112,7 @@ SCREEN <- function(sg_dir, mtx_dir, fragments = NULL, species = "Hs", version = 
             message("Running Mixscape")
             mixscape <- IntegratedMixscape(sg_lib, RNA, NTC, prefix, label)
         }
-        RNA <- normalize_scale(RNA, label, prefix)
+        RNA <- normalize_scale(RNA)
         scaled <- GetAssayData(object = RNA, slot = "scale.data")
         
         message("Save RDS file")

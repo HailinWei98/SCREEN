@@ -9,10 +9,11 @@ Users can do this step by themselves using Seurat.}
 scQC(
   mtx_dir,
   prefix = "./",
+  label = "",
   species = "Hs",
   gene_frac = 0.01,
-  nFeature = c(200, 5000),
-  nCount = 1000,
+  nFeature_RNA = c(200, 5000),
+  nCount_RNA = 1000,
   mt = 10,
   blank_NTC = FALSE
 )

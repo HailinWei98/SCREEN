@@ -4,7 +4,7 @@
 \alias{normalize_scale}
 \title{function definitions ##### Normalize and scale data.}
 \usage{
-normalize_scale(mtx_dir, label = "", prefix = "./")
+normalize_scale(mtx_dir)
 }
 \description{
 function definitions ##### Normalize and scale data.

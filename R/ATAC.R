@@ -1,4 +1,5 @@
 #' @export
+
 ATAC_Add_meta_data <- function(sg_dir, mtx_dir, fragments, replicate = 1){
     
     #Add "sgRNA_num" and "perturbations"
@@ -23,6 +24,7 @@ ATAC_Add_meta_data <- function(sg_dir, mtx_dir, fragments, replicate = 1){
 }
 
 #' @export
+
 ATAC_scQC <- function(mtx_dir, prefix = "./", label = "", peak_frac = 0.01, nFeature_peak = c(200, 500000), nCount_peak = 1000, FRiP = 0.1, blank_NTC = FALSE){
       #read file
   if (is.character(mtx_dir)) {
@@ -67,6 +69,7 @@ ATAC_scQC <- function(mtx_dir, prefix = "./", label = "", peak_frac = 0.01, nFea
 }
 
 #' @export
+
 CalculateGeneActivity <- function(mtx_dir, fragments, species = "Hs", version = "v75", gene_type = "Symbol", protein_coding = TRUE, pro_up = 3000, pro_down = 0){
     
     #get promoter region
@@ -110,6 +113,7 @@ CalculateGeneActivity <- function(mtx_dir, fragments, species = "Hs", version = 
 }
 
 #' @export
+
 GetPromoter <- function(species = "Hs", version = "v75", gene_type = "Symbol", protein_coding = TRUE, pro_up = 3000, pro_down = 0){
 
     #get gene ranges from selected reference

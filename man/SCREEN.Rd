@@ -2,30 +2,61 @@
 % Please edit documentation in R/SCREEN.R
 \name{SCREEN}
 \alias{SCREEN}
-\title{function definitions ##### Run all function with one command}
+\title{SCREEN}
 \usage{
 SCREEN(
   sg_dir,
   mtx_dir,
+  fragments = NULL,
   species = "Hs",
+  version = "v75",
+  data_type = "RNA",
+  Mixscape = TRUE,
   prefix = "./",
   label = "",
-  gene_frac = 0.01,
+  gene_type = "Symbol",
+  protein_coding = TRUE,
+  frac = 0.01,
+  cal.mt = TRUE,
   nFeature = c(200, 5000),
   nCount = 1000,
+  FRiP = 0.1,
   mt = 10,
   blank_NTC = FALSE,
   lambda = 0.01,
   permutation = NULL,
   p_val_cut = 0.05,
   score_cut = 0.5,
+  cicero_p_val_cut = 0.05,
+  cicero_score_cut = 0,
   ylimit = c(-600, 600, 200),
   project = "perturb",
   NTC = "NTC",
   replicate = 1,
-  select_gene = NULL
+  select_gene = NULL,
+  selected = NULL,
+  gene_annotations = NULL,
+  pro_annotations = NULL,
+  pro_up = 3000,
+  pro_down = 0,
+  overlap_cut = 0,
+  p_adj_cut = 0.05,
+  logFC_cut = 1,
+  min.pct = 0.2,
+  upstream = 2e+06,
+  downstream = 2e+06,
+  test.use = "wilcox",
+  track_size = c(1, 0.3, 0.2, 0.3),
+  include_axis_track = TRUE,
+  connection_color = "#7F7CAF",
+  connection_color_legend = TRUE,
+  connection_width = 2,
+  connection_ymax = NULL,
+  gene_model_color = "#81D2C7",
+  alpha_by_coaccess = FALSE,
+  gene_model_shape = c("smallArrow", "box")
 )
 }
 \description{
-function definitions ##### Run all function with one command
+SCREEN
 }

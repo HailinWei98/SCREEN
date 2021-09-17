@@ -16,6 +16,13 @@ IntegratedMixscape<- function(sg_dir, mtx_dir,
     eccite <- mtx_dir
   }
     
+    if (is.character(sg_dir)) {
+        message(paste("Reading sgRNA lib file:", sg_dir))
+        sg_lib <- read.table(sg_dir,header=T)
+    } else {
+        sg_lib <- sg_dir
+    }
+
     #replicate information
     
     if(!("replicate" %in% colnames(eccite@meta.data))){
@@ -24,13 +31,13 @@ IntegratedMixscape<- function(sg_dir, mtx_dir,
     
   #add barcode information
     
-  sg_lib<- read.table(sg_dir,header=T)
   sg_in_cell<- data.frame(plyr::count(sg_lib$cell))
   sg_lib<- subset(sg_lib,cell %in% subset(sg_in_cell,freq==1)[,1])
   rownames(sg_lib)<- sg_lib$cell
   eccite<- eccite[,colnames(eccite) %in% sg_lib$cell]
     
     #if too few cells
+    
     if(ncol(eccite) <= 20){
         stop("Too few cells in input matrix")
     }
@@ -44,7 +51,7 @@ IntegratedMixscape<- function(sg_dir, mtx_dir,
   eccite <- NormalizeData(object = eccite) %>% FindVariableFeatures() %>% ScaleData()
 
   # Run Principle Component Analysis (PCA) to reduce the dimensionality of the data.
-  eccite <- RunPCA(object = eccite)
+  eccite <- suppressMessages(RunPCA(object = eccite))
 
   # Run Uniform Manifold Approximation and Projection (UMAP) to visualize clustering in 2-D.
   eccite <- RunUMAP(object = eccite, dims = 1:40)
@@ -123,7 +130,7 @@ IntegratedMixscape<- function(sg_dir, mtx_dir,
   eccite <- ScaleData(object = eccite, do.scale = F, do.center = T)
 
   # Run PCA to reduce the dimensionality of the data.
-  eccite <- RunPCA(object = eccite, reduction.key = 'prtbpca', reduction.name = 'prtbpca')
+  eccite <- suppressMessages(RunPCA(object = eccite, reduction.key = 'prtbpca', reduction.name = 'prtbpca'))
 
   # Run UMAP to visualize clustering in 2-D.
   eccite <- RunUMAP(
@@ -175,7 +182,7 @@ IntegratedMixscape<- function(sg_dir, mtx_dir,
   dev.off()
 
   # Run mixscape.
-  eccite <- RunMixscape(
+  eccite <- suppressWarnings(RunMixscape(
     object = eccite,
     assay = "PRTB",
     slot = "scale.data",
@@ -185,7 +192,7 @@ IntegratedMixscape<- function(sg_dir, mtx_dir,
     iter.num = 10,
     de.assay = "RNA",
     verbose = F,
-    prtb.type = "KO")
+    prtb.type = "KO"))
 
   #saveRDS(eccite,file.path(prefix, "mixscape.rds"))
 

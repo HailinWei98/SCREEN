@@ -65,7 +65,6 @@ sgRNA_quality_plot<- function(sg_dir, mtx_dir, LABEL = "", prefix = "./"){
   print(g1)
   print(g2)
   dev.off()
-  g3<- g1 + g2
 
   dir<- file.path(prefix, "sgRNA_quality_of_gene")
   dir.create(path = dir)
@@ -85,5 +84,5 @@ sgRNA_quality_plot<- function(sg_dir, mtx_dir, LABEL = "", prefix = "./"){
     print(p1)
     dev.off()  
   }
-  return(g3)
+  return(list(g1, g2))
 }

@@ -58,6 +58,7 @@ DApeaks <- function(object, selected, NTC = "NTC", min.pct = 0.2,
 }
 
 #' @export
+
 enhancer <- function(da_peak, pro_anno, overlap_cut, pro_up = 3000, pro_down = 0){
     #get enhancer list
         

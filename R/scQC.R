@@ -23,17 +23,17 @@ scQC<- function(mtx_dir, prefix = "./", label = "", species = "Hs", gene_frac = 
   #filter cells with low quality
   if(blank_NTC == TRUE){
     perturb_QC <- subset(perturb,
-                        nFeature_RNA <= nFeature[2] &
-                          nFeature_RNA >= nFeature[1] &
-                          nCount_RNA >= nCount &
+                        nFeature_RNA <= nFeature_RNA[2] &
+                          nFeature_RNA >= nFeature_RNA[1] &
+                          nCount_RNA >= nCount_RNA &
                           percent.mt <= mt)
   }else{
     perturb_QC <- subset(perturb,
-                       nFeature_RNA <= nFeature[2] &
-                         nFeature_RNA >= nFeature[1] &
-                         nCount_RNA >= nCount &
+                       nFeature_RNA <= nFeature_RNA[2] &
+                         nFeature_RNA >= nFeature_RNA[1] &
+                         nCount_RNA >= nCount_RNA &
                          percent.mt <= mt &
-                         perturbations != blank)
+                         perturbations != 'blank')
   }
   perturb_QC <- CreateSeuratObject(counts = GetAssayData(object = perturb_QC, slot = "counts"),
                                   min.cells = gene_frac * ncol(perturb_QC), project = perturb@project.name)
