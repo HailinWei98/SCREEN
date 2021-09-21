@@ -41,7 +41,7 @@ scQC<- function(mtx_dir, prefix = "./", label = "", species = "Hs", gene_frac = 
   perturb_QC <- CreateSeuratObject(counts = GetAssayData(object = perturb_QC, slot = "counts"),
                                   min.cells = gene_frac * ncol(perturb_QC), project = perturb@project.name)
     if("replicate" %in% colnames(perturb@meta.data)){
-        perturb_QC$replicate <- replicate
+        perturb_QC$replicate <- perturb$replicate
     }
     
     if("perturbations" %in% colnames(perturb@meta.data)){
