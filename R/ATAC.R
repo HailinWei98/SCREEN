@@ -1,4 +1,5 @@
 #' @export
+#' @import Signac
 
 ATAC_Add_meta_data <- function(sg_dir, mtx_dir, fragments, replicate = 1){
     
@@ -8,24 +9,25 @@ ATAC_Add_meta_data <- function(sg_dir, mtx_dir, fragments, replicate = 1){
 
     #calculate FRiP
     
-    if(is.character(fragments)){
-        if(fragments %in% colnames(peak@meta.data)){
-            peak <- FRiP(peak, "peaks", total.fragments = fragments)
+    if(!("FRiP" %in% colnames(peak@meta.data))){
+        if(is.character(fragments)){
+            if(fragments %in% colnames(peak@meta.data)){
+                peak <- FRiP(peak, "peaks", total.fragments = fragments)
+            }else{
+                frag <- CountFragments(fragments = fragments, cells = colnames(peak))
+                peak$fragments <- frag$reads_count
+                peak <- FRiP(peak, "peaks", total.fragments = "fragments")
+            }
         }else{
-            frag <- CountFragments(fragments = fragments, cells = colnames(peak))
-            peak$fragments <- frag$reads_count
-            peak <- FRiP(peak, "peaks", total.fragments = "fragments")
+            stop("Please provide the path of fragments file or meta data names of total fragments counts")
         }
-    }else{
-        stop("Please provide the path of fragments file or meta data names of total fragments counts")
     }
-    #saveRDS(mtx,file = file.path(prefix, paste(label, "perturb.rds", sep = "")))
-    return(mtx)
+    return(peak)
 }
 
 #' @export
 
-ATAC_scQC <- function(mtx_dir, prefix = "./", label = "", peak_frac = 0.01, nFeature_peak = c(200, 500000), nCount_peak = 1000, FRiP = 0.1, blank_NTC = FALSE){
+ATAC_scQC <- function(mtx_dir, prefix = "./", label = "", peak_frac = 0.01, nFeature = c(200, 500000), nCount = 1000, FRiP = 0.1, blank_NTC = FALSE){
       #read file
   if (is.character(mtx_dir)) {
     message(paste("Reading RDS file:", mtx_dir))
@@ -33,6 +35,9 @@ ATAC_scQC <- function(mtx_dir, prefix = "./", label = "", peak_frac = 0.01, nFea
   } else {
     perturb <- mtx_dir
   }
+    
+    perturb$nFeature_peak <- perturb[[paste("nFeature_", perturb@active.assay, sep = "")]][, 1]
+    perturb$nCount_peak <- perturb[[paste("nCount_", perturb@active.assay, sep = "")]][, 1]
 
   #QC plot of the single cell matrix
   pdf(file = file.path(prefix, paste(label, "raw_matrix_quality_vlnplot.pdf", sep = "")))
@@ -40,25 +45,35 @@ ATAC_scQC <- function(mtx_dir, prefix = "./", label = "", peak_frac = 0.01, nFea
   print(p1)
   dev.off()
 
-
+    
   #filter cells with low quality
   if(blank_NTC == TRUE){
     perturb_QC <- subset(perturb,
-                        nFeature_peak <= nFeature_peak[2] &
-                          nFeature_peak >= nFeature_peak[1] &
-                          nCount_peak >= nCount_peak &
+                        nFeature_peak <= nFeature[2] &
+                          nFeature_peak >= nFeature[1] &
+                          nCount_peak >= nCount &
                           FRiP >= FRiP)
   }else{
     perturb_QC <- subset(perturb,
-                       nFeature_peak <= nFeature_peak[2] &
-                         nFeature_peak >= nFeature_peak[1] &
-                         nCount_peak >= nCount_peak &
+                         nFeature_peak <= nFeature[2] &
+                         nFeature_peak >= nFeature[1] &
+                         nCount_peak >= nCount &
                          FRiP >= FRiP &
-                         perturbations != blank)
+                         perturbations != 'blank')
   }
-  perturb_QC <- CreateSeuratObject(counts = GetAssayData(object = perturb_QC, slot = "counts"),
+  perturb_QC <- CreateSeuratObject(counts = GetAssayData(object = perturb_QC, slot = "counts"), assay = "peak",
                                   min.cells = peak_frac * ncol(perturb_QC), project = perturb@project.name)
-    perturb_QC$FRiP <- perturb$FRiP
+    if("FRiP" %in% colnames(perturb@meta.data)){
+        perturb_QC$FRiP <- perturb$FRiP
+    }
+    
+    if("replicate" %in% colnames(perturb@meta.data)){
+        perturb_QC$replicate <- perturb$replicate
+    }
+    
+    if("perturbations" %in% colnames(perturb@meta.data)){
+        perturb_QC$perturbations <- perturb$perturbations
+    }
   pdf(file = file.path(prefix, paste(label, "QC_matrix_quality_vlnplot.pdf", sep = "")))
   p2 <- VlnPlot(perturb_QC, features = c("nFeature_peak", "nCount_peak", "FRiP"), ncol = 3, pt.size = 0.1)
   print(p2)
@@ -75,8 +90,8 @@ CalculateGeneActivity <- function(mtx_dir, fragments, species = "Hs", version = 
     #get promoter region
     
     pro <- GetPromoter(species, version, gene_type, protein_coding, pro_up, pro_down)
-    genebodyandpromoter.coords <- pro[1]
-    gene.key <- pro[2]
+    genebodyandpromoter.coords <- pro[[1]]
+    gene.key <- pro[[2]]
     
     #get count matrix
     
@@ -95,7 +110,7 @@ CalculateGeneActivity <- function(mtx_dir, fragments, species = "Hs", version = 
     
     #calculate gene activity
     
-    gene.activity<- FeatureMatrix(fragments = fragments, features = genebodyandpromoter.coords,cells = colnames(perturb))
+    gene.activity<- FeatureMatrix(fragments = fragments, features = genebodyandpromoter.coords, cells = colnames(perturb))
     
     #generate gene activity matrix
     
@@ -155,6 +170,6 @@ GetPromoter <- function(species = "Hs", version = "v75", gene_type = "Symbol", p
 
     names(gene.key) <- GRangesToString(grange = genebodyandpromoter.coords)
     
-    return(list[genebodyandpromoter.coords, gene.key])
+    return(list(genebodyandpromoter.coords, gene.key))
 }
 
