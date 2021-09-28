@@ -11,15 +11,7 @@ We are hosting SCREEN documentation, instruction and tutorials at <a href="https
 	snakemake
 	mixtools
 
-## Parameter
-<center><code>mtx_dir</code> : The matrix file directory, require rds file with SeuratObject.</center><br>
-<center><code>sg_dir</code> : The sgRNA file directory, include columns: cell, barcode, gene.</center><br>
-<center><code>prefix</code> : The prefix directory of output file. Default current directory.</center><br>
-<center><code>species</code> : The species of RNA-seq. Default Homo sapiens.</center><br>
-<center><code>NTC</code> : Name of Negative Control. Default 'NTC'.</center><br>
-<center><code>function</code> : Use which function in this pipeline. Default all function.</cencer><br>
-<center><code>replicate</code> : Replicate information. Default no replicate.</cencer><br>
-<center><code>features</code> : Features used to scale. Default high variable genes.</center>
-
-### Run SCREEN pipeline with one command
-	snakemake --snakefile scCRISPR.snakefile --cores 4 --configfile config.yaml --config mtx_dir=input_matrix sg_dir=sgRNA_information prefix=prefix function=function_to_use
+## Installation
+	$ R
+	> library(devtools)
+	> install_github("HailinWei98/SCREEN")
