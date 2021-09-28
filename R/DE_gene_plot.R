@@ -3,7 +3,7 @@
 
 DE_gene_plot<- function(score_dir, pval_dir, project = "perturb",
                         prefix = "./", label = "", p_val_cut = 0.05, score_cut = 0.5,
-                        ylimit = c(-600, 600, 200)){
+                        ylimit = "auto"){
     #get score and p_val
     
     if(is.character(score_dir)){

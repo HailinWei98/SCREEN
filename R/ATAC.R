@@ -1,7 +1,7 @@
 #' @export
 #' @import Signac
 
-ATAC_Add_meta_data <- function(sg_dir, mtx_dir, fragments, replicate = 1){
+ATAC_Add_meta_data <- function(sg_dir, mtx_dir, fragments, replicate = 1, cal.FRiP = TRUE){
     
     #Add "sgRNA_num" and "perturbations"
     
@@ -9,7 +9,7 @@ ATAC_Add_meta_data <- function(sg_dir, mtx_dir, fragments, replicate = 1){
 
     #calculate FRiP
     
-    if(!("FRiP" %in% colnames(peak@meta.data))){
+    if(cal.FRiP == TRUE){
         if(is.character(fragments)){
             if(fragments %in% colnames(peak@meta.data)){
                 peak <- FRiP(peak, "peaks", total.fragments = fragments)
@@ -19,61 +19,70 @@ ATAC_Add_meta_data <- function(sg_dir, mtx_dir, fragments, replicate = 1){
                 peak <- FRiP(peak, "peaks", total.fragments = "fragments")
             }
         }else{
-            stop("Please provide the path of fragments file or meta data names of total fragments counts")
+            stop("Please provide the path of fragments file or meta data name of total fragments counts")
+        }
+    }else{
+        if(!("FRiP" %in% colnames(peak@meta.data))){
+            warning("Please make sure that there is meta data named 'FRiP' in input peak matrix while setting 'cal.FRiP = FALSE'. We will set the 'FRiP' of each cell to 1.")   
         }
     }
+    
     return(peak)
 }
 
 #' @export
 
 ATAC_scQC <- function(mtx_dir, prefix = "./", label = "", peak_frac = 0.01, nFeature = c(200, 500000), nCount = 1000, FRiP = 0.1, blank_NTC = FALSE){
-      #read file
-  if (is.character(mtx_dir)) {
-    message(paste("Reading RDS file:", mtx_dir))
-    perturb <- readRDS(mtx_dir)
-  } else {
-    perturb <- mtx_dir
-  }
     
+    #read file
+    
+    if (is.character(mtx_dir)) {
+        message(paste("Reading RDS file:", mtx_dir))
+        perturb <- readRDS(mtx_dir)
+    } else {
+        perturb <- mtx_dir
+    }
+    
+    if(!("replicate" %in% colnames(perturb@meta.data) & "perturbations" %in% colnames(perturb@meta.data))){
+        stop("Cannot find meta data names 'replicate' or 'perturbations' in input matrix.")
+    }
+    
+    if(!("FRiP" %in% colnames(peak@meta.data))){
+        warning("No meta data named 'FRiP' in input peak matrix. We will set the 'FRiP' of each cell to 1.")   
+    }
     perturb$nFeature_peak <- perturb[[paste("nFeature_", perturb@active.assay, sep = "")]][, 1]
     perturb$nCount_peak <- perturb[[paste("nCount_", perturb@active.assay, sep = "")]][, 1]
 
-  #QC plot of the single cell matrix
-  pdf(file = file.path(prefix, paste(label, "raw_matrix_quality_vlnplot.pdf", sep = "")))
-  p1 <- VlnPlot(perturb, features = c("nFeature_peak", "nCount_peak", "FRiP"), ncol = 3, pt.size = 0.1)
-  print(p1)
-  dev.off()
+    #QC plot of the single cell matrix
+    
+    pdf(file = file.path(prefix, paste(label, "raw_matrix_quality_vlnplot.pdf", sep = "")))
+    p1 <- VlnPlot(perturb, features = c("nFeature_peak", "nCount_peak", "FRiP"), ncol = 3, pt.size = 0.1)
+    print(p1)
+    dev.off()
 
     
-  #filter cells with low quality
-  if(blank_NTC == TRUE){
-    perturb_QC <- subset(perturb,
-                        nFeature_peak <= nFeature[2] &
-                          nFeature_peak >= nFeature[1] &
-                          nCount_peak >= nCount &
-                          FRiP >= FRiP)
-  }else{
-    perturb_QC <- subset(perturb,
-                         nFeature_peak <= nFeature[2] &
-                         nFeature_peak >= nFeature[1] &
-                         nCount_peak >= nCount &
-                         FRiP >= FRiP &
-                         perturbations != 'blank')
-  }
-  perturb_QC <- CreateSeuratObject(counts = GetAssayData(object = perturb_QC, slot = "counts"), assay = "peak",
-                                  min.cells = peak_frac * ncol(perturb_QC), project = perturb@project.name)
+    #filter cells with low quality
+    
+    if(blank_NTC == TRUE){
+        perturb_QC <- subset(perturb,
+                             nFeature_peak <= nFeature[2] &
+                             nFeature_peak >= nFeature[1] &
+                             nCount_peak >= nCount &
+                             FRiP >= FRiP)
+    }else{
+        perturb_QC <- subset(perturb,
+                             nFeature_peak <= nFeature[2] &
+                             nFeature_peak >= nFeature[1] &
+                             nCount_peak >= nCount &
+                             FRiP >= FRiP &
+                             perturbations != 'blank')
+    }
+    perturb_QC <- CreateSeuratObject(counts = GetAssayData(object = perturb_QC, slot = "counts"), assay = "peak",
+                                     min.cells = peak_frac * ncol(perturb_QC), project = perturb@project.name)
     if("FRiP" %in% colnames(perturb@meta.data)){
         perturb_QC$FRiP <- perturb$FRiP
     }
     
-    if("replicate" %in% colnames(perturb@meta.data)){
-        perturb_QC$replicate <- perturb$replicate
-    }
-    
-    if("perturbations" %in% colnames(perturb@meta.data)){
-        perturb_QC$perturbations <- perturb$perturbations
-    }
   pdf(file = file.path(prefix, paste(label, "QC_matrix_quality_vlnplot.pdf", sep = "")))
   p2 <- VlnPlot(perturb_QC, features = c("nFeature_peak", "nCount_peak", "FRiP"), ncol = 3, pt.size = 0.1)
   print(p2)

@@ -1,12 +1,44 @@
-#' SCREEN
+#' Batch Run
+#'
+#' Get all results using one function easily.
+#' 
+#' @param sg_dir Data frame or directory to a txt file containing 3 columns: cell, barcode, gene. If sgRNA information stored in a matrix-like format or input data frame only has sgRNA frequence of each cell, use \code{\link[SCREEN{sgRNAassign}} to assign sgRNA to each cell.
+#' @param mtx_dir SeuratObject or directory to rds file of SeuratObject, with cell in columns and features in rows.
+#' @param fragments Fragments information used to calculate FRiP for perturb-ATAC input, can be the directory or the meta.data names of the fragments. Default is \code{NULL}.
+#' @param cal.FRiP Logical, calculate FRiP or not. Default is \code{TRUE}.
+#' @param species Only support "Hs" and "Mm", if input other species, \code{percent.mt} will be count as "Mm". Default is "Hs".
+#' @param version Version of the reference genome(Ensembl), used for perturb-ATAC input and perturb-enhancer input. Default is "v75".
+#' @param data_type Type of input data, can be one of c("RNA", "ATAC"). Default is "RNA".
+#' @param Mixscape Logical, run \code{IntegratedMixscape} or not. Default is \code{TRUE}.
+#' @param prefix Path to save all the results. Default is current directory.
+#' @param label The label of the output file.
+#' @param gene_type Type of gene name, selected from one of c("Symbol", "Ensembl"). This parameter is only used for calculating gene activity for perturb-ATAC input. Default is "Symbol".
+#' @param protein_coding Logical, only use protein coding gene or not. This parameter is only used for calculating gene activity for perturb-ATAC input. Default is \code{TRUE}.
+#' @param frac A paramter for filtering low expressed genes or low accessibility peaks. By default, only genes or peaks that have expressions or counts in at least that fractions of cells are kept. Default is 0.01.
+#' @param cal.mt Logical, calculate percentage of mitochondrial gene expression of each cell or not. Default is \code{TRUE}.
+#' @param nFeature Limitation of detected feature numbers in each cell, in the format c(200, 5000). Default is c(200, 5000).
+#' @param nCount Minimal count numbers in each cell. Default is 1000.
+#' @param FRiP Minimal FRiP of each cell. Default is 0.1.
+#' @param mt Maximal percentage of mitochondrial gene expression of each cell. Default is 10.
+#' @param blank_NTC Logical, use blank control as negative control or not. Default is \code{FALSE}.
+#' @param lambda Parameter used in ridge regression of \code{improved_scmageck_lr}. Default is 0.01.
+#' @param permutation Permutation times in \code{improved_scmageck_lr}. Default is 10000.
+#' @param p_val_cut P-value cutoff of \code{improved_scmageck_lr} results. Default is 0.05.
+#' @param score_cut Score cutoff of \code{improved_scmageck_lr} results. Default is 0.5.
+#' @param cicero_p_val_cut P-value cutoff of \code{improved_scmageck_lr} results used for \code{ciceroPlot}. Default is 0.05.
+#' @param cicero_socre_cut Score cutoff of \code{improved_scmageck_lr} results used for \code{ciceroPlot}. Default is 0.
+#' @param ylimit Limitation of y-axis of /code{DE_gene_plot} in the format c(-600, 600, 200). These numbers mean c(minimum, maximum, interval). Default is "auto", which means that this function will get \code{ylimit} automatically.
+#' @param project Title of /code{DE_gene_plot}. Default is "perturb".
+#' @param NTC The name of the genes served as negative controls. Default is "NTC".
+#' @param replicate 
 #' @export
 
-SCREEN <- function(sg_dir, mtx_dir, fragments = NULL, species = "Hs", version = "v75", data_type = "RNA", 
-                   Mixscape = TRUE, prefix = "./", label = "", gene_type = "Symbol", protein_coding = TRUE, 
-                   frac = 0.01, cal.mt = TRUE, nFeature = c(200, 5000), nCount = 1000, FRiP = 0.1,
-                   mt = 10, blank_NTC = FALSE, lambda = 0.01, permutation = NULL,
+SCREEN <- function(sg_dir, mtx_dir, fragments = NULL, cal.FRiP = TRUE, species = "Hs", version = "v75", 
+                   data_type = "RNA", Mixscape = TRUE, prefix = "./", label = "", gene_type = "Symbol", 
+                   protein_coding = TRUE, frac = 0.01, cal.mt = TRUE, nFeature = c(200, 5000), nCount = 1000, 
+                   FRiP = 0.1, mt = 10, blank_NTC = FALSE, lambda = 0.01, permutation = NULL,
                    p_val_cut = 0.05, score_cut = 0.5, cicero_p_val_cut = 0.05, cicero_score_cut = 0,
-                   ylimit = c(-600, 600, 200), project = "perturb", NTC = "NTC", replicate = 1, 
+                   ylimit = "auto", project = "perturb", NTC = "NTC", replicate = 1, 
                    select_gene = NULL, selected =  NULL, gene_annotations = NULL, pro_annotations = NULL, 
                    pro_up = 3000, pro_down = 0, overlap_cut = 0, p_adj_cut = 0.05, logFC_cut = 1,
                    min.pct = 0.2, upstream = 2000000, downstream = 2000000, test.use = "wilcox", 
@@ -14,6 +46,7 @@ SCREEN <- function(sg_dir, mtx_dir, fragments = NULL, species = "Hs", version = 
                    connection_color_legend = TRUE, connection_width = 2, connection_ymax = NULL,
                    gene_model_color = "#81D2C7", alpha_by_coaccess = FALSE,
                    gene_model_shape = c("smallArrow", "box")) {
+    
     #get matrix
     
     if (is.character(mtx_dir)) {
@@ -98,7 +131,7 @@ SCREEN <- function(sg_dir, mtx_dir, fragments = NULL, species = "Hs", version = 
         results[3] <- cicero_result
         names(results) <- c("scMAGeCK_lr", "DE_gene_plot", "cicero_results")
     } else if(data_type == "ATAC"){
-        mtx <- ATAC_Add_meta_data(sg_lib, mtx, fragments, replicate)
+        mtx <- ATAC_Add_meta_data(sg_lib, mtx, fragments, replicate, cal.FRiP)
         mtx_QC <- ATAC_scQC(mtx, prefix, label, frac, nFeature, nCount, FRiP, blank_NTC)
         p <- sgRNA_quality_plot(sg_lib, mtx,
                                LABEL = paste(label, "before_QC", sep = ""), prefix)
