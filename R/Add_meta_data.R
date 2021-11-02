@@ -22,7 +22,7 @@ Add_meta_data <- function(sg_dir, mtx_dir, cal.mt = TRUE, species = "Hs", replic
 
     #remove cells in sgRNA library that are not included in matrix
     
-    sg_lib_filtered <- subset(sg_lib,cell %in% intersect(sg_lib$cell,colnames(mtx)))
+    sg_lib_filtered <- subset(sg_lib, cell %in% intersect(sg_lib$cell, colnames(mtx)))
 
     #label each cells
     
@@ -35,7 +35,7 @@ Add_meta_data <- function(sg_dir, mtx_dir, cal.mt = TRUE, species = "Hs", replic
     #find unique label and multiple label
     
     for(i in 1:nrow(sg_in_cell)){
-        x <- sg_in_cell[i,]
+        x <- sg_in_cell[i, ]
         if(x[, 2] == 1){
             lab[x[, 1]] <- sg_lib_filtered[which(sg_lib_filtered$cell == x[, 1]), ]$gene}else{
             lab[x[, 1]] <- "multiple"}
@@ -43,7 +43,7 @@ Add_meta_data <- function(sg_dir, mtx_dir, cal.mt = TRUE, species = "Hs", replic
 
     for(i in 1:nrow(sg_in_cell)){
         if(sg_in_cell[i, 1] %in% names(sg_num)){
-            sg_num[sg_in_cell[i, 1]] <- sg_in_cell[i,2]
+            sg_num[sg_in_cell[i, 1]] <- sg_in_cell[i, 2]
         }
     }
         
@@ -55,16 +55,16 @@ Add_meta_data <- function(sg_dir, mtx_dir, cal.mt = TRUE, species = "Hs", replic
 
     #Add replicate information to Seurat object
     
-    if(replicate!=1){
+    if(replicate != 1){
         if(is.character(replicate)){
-            replicate <- read.table(replicate, header=F)
-            replicate <- as.vector(replicate[,1])
+            replicate <- read.table(replicate, header = F)
+            replicate <- as.vector(replicate[, 1])
         }
         if(is.vector(replicate) == FALSE){
             stop("Replicate information must be a vector.")
         }else{
             if(is.null(names(replicate))){
-                names(replicate)<- colnames(mtx)
+                names(replicate) <- colnames(mtx)
             }
         }
     }

@@ -25,7 +25,7 @@ DApeaks <- function(object, selected, NTC = "NTC", min.pct = 0.2,
     
     if("perturbations" %in% colnames(peak@meta.data)){
         if(selected %in% peak$perturbations){
-            peak@active.ident<- peak$perturbations
+            peak@active.ident <- peak$perturbations
         }else{
             stop(paste("Cannot find ", selected, " in perturbations", sep = "'"))
         }
@@ -60,24 +60,25 @@ DApeaks <- function(object, selected, NTC = "NTC", min.pct = 0.2,
 #' @export
 
 enhancer <- function(da_peak, pro_anno, overlap_cut, pro_up = 3000, pro_down = 0){
+    
     #get enhancer list
         
-    enhancer_list<- data.frame()
+    enhancer_list <- data.frame()
     for(i in 1:nrow(da_peak)){
         chr <- da_peak[i, "chromosome"]
         start <- as.numeric(da_peak[i, "start"])
         end <- as.numeric(da_peak[i, "end"])
-        minbp <- start - 2*(pro_up + pro_down)
-        maxbp <- end + 2*(pro_up + pro_down)
+        minbp <- start - 2 * (pro_up + pro_down)
+        maxbp <- end + 2 * (pro_up + pro_down)
         peak_model <- pro_anno
         peak_model <- peak_model[!is.na(peak_model$chromosome) & 
-                             !is.na(peak_model$start) &
-                             !is.na(peak_model$end) &
-                             !is.na(peak_model$strand),]
+                                 !is.na(peak_model$start) &
+                                 !is.na(peak_model$end) &
+                                 !is.na(peak_model$strand), ]
         peak_model <- peak_model[peak_model$chromosome == chr &
-                   ((peak_model$start > minbp & peak_model$start < maxbp) |
-                    (peak_model$end > minbp & peak_model$end < maxbp) |
-                    (peak_model$start < minbp & peak_model$end > maxbp)),]
+                                 ((peak_model$start > minbp & peak_model$start < maxbp) |
+                                  (peak_model$end > minbp & peak_model$end < maxbp) |
+                                  (peak_model$start < minbp & peak_model$end > maxbp)), ]
         if(nrow(peak_model) == 0){
             enhancer_list <- rbind(enhancer_list, c(chr, start, end))
         }else{

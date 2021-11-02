@@ -1,11 +1,11 @@
-
-
 #' @export
 #' @import Gviz
 #' @import ensembldb
+
 ciceroPlot<- function(score_dir, pval_dir, selected = NULL, species = "Hs", version = "v75", gene_annotations = NULL, 
-                      p_val_cut = 0.05, score_cut = 0, upstream = 2000000, downstream = 2000000,
-                      track_size = c(1,.3,.2,.3), include_axis_track = TRUE, connection_color = "#7F7CAF",
+                      p_val_cut = 0.05, score_cut = 0, prefix = "./", label = "", 
+                      upstream = 2000000, downstream = 2000000,
+                      track_size = c(1, .3, .2, .3), include_axis_track = TRUE, connection_color = "#7F7CAF",
                       connection_color_legend = TRUE, connection_width = 2, connection_ymax = NULL, 
                       gene_model_color = "#81D2C7", alpha_by_coaccess = FALSE, 
                       gene_model_shape = c("smallArrow", "box")){
@@ -54,8 +54,15 @@ ciceroPlot<- function(score_dir, pval_dir, selected = NULL, species = "Hs", vers
         selected <- colnames(score)[which(colnames(score) != "NegCtrl")]
         selected <- selected[grep("^chr", selected)]
     }
+        
+    dir <- file.path(prefix, "cicero_results")
+    if (!dir.exists(dir)) {
+        dir.create(path = dir)
+    }
+        
     if(is.character(selected)){
-        if(length(selected) == 1){          
+        if(length(selected) == 1){
+                                  
             #get score and p-value of selected enhancer
                 
             conn_input <- data.frame(score = score[, selected], pval = pval[, selected])
@@ -67,14 +74,14 @@ ciceroPlot<- function(score_dir, pval_dir, selected = NULL, species = "Hs", vers
             #get information from selected enhancer
     
             all <- unlist(strsplit(selected, "[.|:|-]"))
-            chr<- all[1]
-            start<- as.numeric(all[2])
-            end<- as.numeric(all[3])
+            chr <- all[1]
+            start <- as.numeric(all[2])
+            end <- as.numeric(all[3])
         
             #extend region
     
-            minbp<- start - upstream
-            maxbp<- end + downstream
+            minbp <- start - upstream
+            maxbp <- end + downstream
             
             #get results
             
@@ -86,6 +93,20 @@ ciceroPlot<- function(score_dir, pval_dir, selected = NULL, species = "Hs", vers
             }
             gg <- gg + labs(title = selected) + 
                             theme(plot.title = element_text(hjust = 0.5), text = element_text(size = 12,face = "bold"))
+            
+            #save plot
+            
+            selected <- gsub(":", ".", selected)
+            
+            pdf(file = file.path(dir, paste(selected, ".pdf", sep = "")))
+            print(gg)
+            dev.off()
+        
+            png(file.path(file.path(prefix, "img/cicero"), paste(selected, ".png", sep = "")), 
+                width = 600 * 3, height = 600 * 3, res = 72 * 3)
+            print(gg)
+            dev.off()
+            
             return(gg)
         }else{
                 
@@ -108,18 +129,18 @@ ciceroPlot<- function(score_dir, pval_dir, selected = NULL, species = "Hs", vers
                 #get information from selected enhancer
                 
                 all <- unlist(strsplit(perturb, "[.|:|-]"))
-                chr<- all[1]
-                start<- as.numeric(all[2])
-                end<- as.numeric(all[3])
+                chr <- all[1]
+                start <- as.numeric(all[2])
+                end <- as.numeric(all[3])
         
                 #extend region
     
-                minbp<- start - upstream
-                maxbp<- end + downstream
+                minbp <- start - upstream
+                maxbp <- end + downstream
             
                 #get results
             
-                gg <- get_results(chr, start, end, minbp, maxbp, gene_anno, track_size,
+                gg <- get_results(chr, start, end, minbp, maxbp, gene_anno, track_size, gene_model_shape,
                                   conn_input, connection_color, include_axis_track, score, 
                                   score_cut, connection_width, alpha_by_coaccess, color_names)
                 if(is.null(gg)){
@@ -127,9 +148,23 @@ ciceroPlot<- function(score_dir, pval_dir, selected = NULL, species = "Hs", vers
                 }
                 j <- j + 1
                 gg <- gg + labs(title = perturb) + 
-                            theme(plot.title = element_text(hjust = 0.5), text = element_text(size = 12,face = "bold"))
+                theme(plot.title = element_text(hjust = 0.5), 
+                      text = element_text(size = 12, face = "bold"))
                 results[[j]] <- gg
                 names(results)[j] <- perturb
+                
+                #save plot
+                
+                perturb <- gsub(":", ".", perturb)
+            
+                pdf(file = file.path(dir, paste(perturb, ".pdf", sep = "")))
+                print(gg)
+                dev.off()
+        
+                png(file.path(file.path(prefix, "img/cicero"), paste(perturb, ".png", sep = "")), 
+                    width = 600 * 3, height = 600 * 3, res = 72 * 3)
+                print(gg)
+                dev.off()
             }
             return(results)
         }
@@ -139,89 +174,88 @@ ciceroPlot<- function(score_dir, pval_dir, selected = NULL, species = "Hs", vers
 }
     
 generate_plotting_subset <- function(connections, chr, minbp, maxbp) {
-  connections$Peak1 <- as.character(connections$Peak1)
-  connections$Peak2 <- as.character(connections$Peak2)
+    connections$Peak1 <- as.character(connections$Peak1)
+    connections$Peak2 <- as.character(connections$Peak2)
 
-  pcolor_map <- data.frame(Peak1 = connections$Peak1,
-                           peak_color = connections$peak_color)
-  pcolor_map <- pcolor_map[!duplicated(pcolor_map),]
-  connections$peak_color <- NULL
+    pcolor_map <- data.frame(Peak1 = connections$Peak1,
+                             peak_color = connections$peak_color)
+    pcolor_map <- pcolor_map[!duplicated(pcolor_map), ]
+    connections$peak_color <- NULL
 
-  if(sum(!c("chr_1", "chr_2", "bp1_1", "bp2_1", "bp2_1", "bp2_2") %in%
-         names(connections)) != 0 ) {
-    suppressWarnings(connections$chr <- NULL)
-    suppressWarnings(connections$bp1 <- NULL)
-    suppressWarnings(connections$bp2 <- NULL)
-    suppressWarnings(connections$chr_2 <- NULL)
-    suppressWarnings(connections$bp1_2 <- NULL)
-    suppressWarnings(connections$bp2_2 <- NULL)
-
-    connections <- cbind(connections, df_for_coords(connections$Peak1)[,c(1, 2, 3)])
-    cons2 <- df_for_coords(connections$Peak2) #slow
-    cons2$Peak <- NULL
-    names(cons2) <- c("chr_2", "bp1_2", "bp2_2")
-    connections <- cbind(connections, cons2) #slow
-  } else {
-    if(!grepl("chr", connections$chr_1[1])) {
-      connections$chr_1 <- paste0("chr", connections$chr_1)
+    if(sum(!c("chr_1", "chr_2", "bp1_1", "bp2_1", "bp2_1", "bp2_2") %in% names(connections)) != 0 ) {
+        suppressWarnings(connections$chr <- NULL)
+        suppressWarnings(connections$bp1 <- NULL)
+        suppressWarnings(connections$bp2 <- NULL)
+        suppressWarnings(connections$chr_2 <- NULL)
+        suppressWarnings(connections$bp1_2 <- NULL)
+        suppressWarnings(connections$bp2_2 <- NULL)
+        
+        connections <- cbind(connections, df_for_coords(connections$Peak1)[ ,c(1, 2, 3)])
+        cons2 <- df_for_coords(connections$Peak2) #slow
+        cons2$Peak <- NULL
+        names(cons2) <- c("chr_2", "bp1_2", "bp2_2")
+        connections <- cbind(connections, cons2) #slow
+    } else {
+        if(!grepl("chr", connections$chr_1[1])) {
+            connections$chr_1 <- paste0("chr", connections$chr_1)
+        }
+        if(!grepl("chr", connections$chr_2[1])) {
+            connections$chr_2 <- paste0("chr", connections$chr_2)
+        }
+        names(connections)[names(connections) == "chr_1"] <- "chr"
+        names(connections)[names(connections) == "bp1_1"] <- "bp1"
+        names(connections)[names(connections) == "bp2_1"] <- "bp2"
     }
-    if(!grepl("chr", connections$chr_2[1])) {
-      connections$chr_2 <- paste0("chr", connections$chr_2)
-    }
-    names(connections)[names(connections) == "chr_1"] <- "chr"
-    names(connections)[names(connections) == "bp1_1"] <- "bp1"
-    names(connections)[names(connections) == "bp2_1"] <- "bp2"
-  }
 
-  sub <- connections[connections$chr_2 == chr & connections$bp1 <= maxbp &
+    sub <- connections[connections$chr_2 == chr & connections$bp1 <= maxbp &
                        connections$bp2 <= maxbp & connections$bp1 >= minbp &
                        connections$bp2 >= minbp & connections$bp1_2 <= maxbp &
                        connections$bp2_2 <= maxbp & connections$bp1_2 >= minbp &
-                       connections$bp2_2 >= minbp,]
+                       connections$bp2_2 >= minbp, ]
 
 
-  sub <- sub[!duplicated(sub),]
+    sub <- sub[!duplicated(sub), ]
 
-  sub <- merge(sub, pcolor_map, all.x = TRUE)
-  sub$peak_color <- as.character(sub$peak_color)
-  sub$peak_color[is.na(sub$peak_color)] <- "black"
+    sub <- merge(sub, pcolor_map, all.x = TRUE)
+    sub$peak_color <- as.character(sub$peak_color)
+    sub$peak_color[is.na(sub$peak_color)] <- "black"
 
-  return(sub)
+    return(sub)
 }
                             
 df_for_coords <- function(coord_strings) {
-  coord_strings <- gsub(",", "", coord_strings)
-  coord_cols <- as.data.frame(split_peak_names(coord_strings),
-                              stringsAsFactors = FALSE )
-  names(coord_cols) <- c("chr", "bp1", "bp2")
-  coord_cols$Peak <- coord_strings
-  coord_cols$bp1 <- as.numeric(coord_cols$bp1)
-  coord_cols$bp2 <- as.numeric(coord_cols$bp2)
-  coord_cols
+    coord_strings <- gsub(",", "", coord_strings)
+    coord_cols <- as.data.frame(split_peak_names(coord_strings),
+                                stringsAsFactors = FALSE )
+    names(coord_cols) <- c("chr", "bp1", "bp2")
+    coord_cols$Peak <- coord_strings
+    coord_cols$bp1 <- as.numeric(coord_cols$bp1)
+    coord_cols$bp2 <- as.numeric(coord_cols$bp2)
+    coord_cols
 }
                         
 split_peak_names <- function(inp) {
-  out <- stringr::str_split_fixed(stringi::stri_reverse(inp), 
-                                  ":|-|_", 3)
-  out[,1] <- stringi::stri_reverse(out[,1])
-  out[,2] <- stringi::stri_reverse(out[,2])
-  out[,3] <- stringi::stri_reverse(out[,3])
-  out[,c(3,2,1), drop=FALSE]
+    out <- stringr::str_split_fixed(stringi::stri_reverse(inp), 
+                                    ":|-|_", 3)
+    out[ ,1] <- stringi::stri_reverse(out[, 1])
+    out[ ,2] <- stringi::stri_reverse(out[, 2])
+    out[ ,3] <- stringi::stri_reverse(out[, 3])
+    out[ ,c(3, 2, 1), drop = FALSE]
 }
 
 make_peak_track <- function(df) {
-  df <- df[!duplicated(df[,c("chr", "bp1", "bp2", "peak_color")]),]
+    df <- df[!duplicated(df[ ,c("chr", "bp1", "bp2", "peak_color")]), ]
 
-  if (sum(duplicated(df[,c("chr", "bp1", "bp2")])) > 0)
-    stop(paste("Multiple peak colors correspond to a single peak. Be sure that",
-               "your peak_color column name assigns colors for Peak1 only",
-               collapse = " "))
+    if (sum(duplicated(df[,c("chr", "bp1", "bp2")])) > 0)
+        stop(paste("Multiple peak colors correspond to a single peak. Be sure that",
+                   "your peak_color column name assigns colors for Peak1 only",
+                   collapse = " "))
     
-  df2 <- df[!duplicated(df[,"Peak1"]), ]
-  gr <-  GenomicRanges::GRanges(as.character(df2$chr),
-                 IRanges::IRanges(as.numeric(as.character(df2$bp1)),
-                         as.numeric(as.character(df2$bp2))), score = df2$coaccess)
-  return(gr)
+    df2 <- df[!duplicated(df[ ,"Peak1"]), ]
+    gr <-  GenomicRanges::GRanges(as.character(df2$chr),
+                                  IRanges::IRanges(as.numeric(as.character(df2$bp1)),
+                                                   as.numeric(as.character(df2$bp2))), score = df2$coaccess)
+    return(gr)
 }
     
 plotBedpe <- function(bedpedata,
@@ -235,88 +269,92 @@ plotBedpe <- function(bedpedata,
                       color_names = NULL)
 { ###### All borrowed and modified from Sushi package.
 
-  if (nrow(bedpedata) == 0) {
-    warning("Nothing to plot")
-    return()
-  }
-
-  bedpedata  <- bedpedata[,c("chrom1","start1","stop1","chrom2","start2",
-                             "stop2", "height", "width", "color")]
-
-  # normalize height
-  maxheight <- ymax
-
-  bedpedata$alpha <- .6
-  if(alpha_by_coaccess) {
-    bedpedata$alpha <- (bedpedata$height-score_cut)/maxheight
-  }
-  bedpedata$height <- bedpedata$height/maxheight
-  # remove any rows with 0 height
-  bedpedata <- bedpedata[abs(bedpedata$height) > 0,]
-
-  # reclass data
-  if (any(class(bedpedata) == "data.table")) {
-    for(i in c("start1", "stop1", "start2", "stop2")) {
-      bedpedata[[i]] <- as.numeric(as.character((bedpedata[[i]])))
+    if (nrow(bedpedata) == 0) {
+        warning("Nothing to plot")
+        return()
     }
-  } else {
-    for(i in c("start1", "stop1", "start2", "stop2")) {
-      bedpedata[,i] <- as.numeric(as.character((bedpedata[,i])))
+
+    bedpedata  <- bedpedata[ ,c("chrom1", "start1", "stop1", "chrom2", "start2",
+                                "stop2", "height", "width", "color")]
+
+    # normalize height
+    
+    maxheight <- ymax
+
+    bedpedata$alpha <- .6
+    if(alpha_by_coaccess) {
+        bedpedata$alpha <- (bedpedata$height - score_cut)/maxheight
     }
-  }
+    bedpedata$height <- bedpedata$height/maxheight
+    
+    # remove any rows with 0 height
+    
+    bedpedata <- bedpedata[abs(bedpedata$height) > 0, ]
 
-  # add position columns
-  bedpedata$pos1 = apply(bedpedata[,c("start1","stop1")],1,mean)
-  bedpedata$pos2 = apply(bedpedata[,c("start2","stop2")],1,mean)
+    # reclass data
+    
+    if (any(class(bedpedata) == "data.table")) {
+        for(i in c("start1", "stop1", "start2", "stop2")) {
+            bedpedata[[i]] <- as.numeric(as.character((bedpedata[[i]])))
+        }
+    } else {
+        for(i in c("start1", "stop1", "start2", "stop2")) {
+            bedpedata[ ,i] <- as.numeric(as.character((bedpedata[ ,i])))
+        }
+    }
 
-  totalrange <- as.numeric(as.character(chromend)) -
+    # add position columns
+    
+    bedpedata$pos1 = apply(bedpedata[, c("start1", "stop1")], 1, mean)
+    bedpedata$pos2 = apply(bedpedata[, c("start2", "stop2")], 1, mean)
+
+    totalrange <- as.numeric(as.character(chromend)) -
     as.numeric(as.character(chromstart))
-  if (nrow(bedpedata) == 0) warning("Nothing to plot")
+    if (nrow(bedpedata) == 0) warning("Nothing to plot")
 
-  #legFactors <- sort(names(which(apply(legInfo, 2, any))))
-  #boxSize <-  if(length(setdiff(legFactors, c("col", "cex")))==0) 0.1 else 0.3
-  #pcols <- Gviz:::.getPlottingFeatures(GdObject)
-
-  if (!is.null(color_names)) {
-    boxSize <- .3
-    spacing <- 0.2
-    vspace <- .05
-    for (i in seq_len(length(color_names))) {
-      grid::grid.lines(unit(c(spacing,spacing + boxSize), "inches"),
-                       c(1 - vspace*i, 1 - vspace*i),
-                       gp=grid::gpar(col=color_names[i], lwd=width))
-      grid::grid.text(x=unit(.1 + (boxSize + spacing), "inches"),
-                      y=1 - vspace*i, just=c(0, 0.5),
-                      label=names(color_names)[i])
+    if (!is.null(color_names)) {
+        boxSize <- .3
+        spacing <- 0.2
+        vspace <- .05
+        for (i in seq_len(length(color_names))) {
+            grid::grid.lines(unit(c(spacing,spacing + boxSize), "inches"),
+                             c(1 - vspace * i, 1 - vspace * i),
+                       gp = grid::gpar(col = color_names[i], lwd = width))
+      grid::grid.text(x = unit(.1 + (boxSize + spacing), "inches"),
+                      y = 1 - vspace * i, just = c(0, 0.5),
+                      label = names(color_names)[i])
+        }
     }
-  }
 
-  # plot the data
-  grid::grid.function(function(x) list(x = x, y = (score_cut/(ymax))), 
-                      gp = grid::gpar(col = "black", lty = "dashed", lwd = width)) #
-  for (row in (seq_len(nrow(bedpedata)))) {
-    x1     = bedpedata$pos1[row]
-    x2     = bedpedata$pos2[row]
-    height = bedpedata$height[row]
-    width  = bedpedata$width[row]
-    color  = bedpedata$color[row]
-    alpha  = bedpedata$alpha[row]
-    plotpair(x1,x2,height,totalrange,width,color, chromstart, alpha)
-  }
+    # plot the data
+    
+    grid::grid.function(function(x) list(x = x, y = (score_cut/(ymax))), 
+                        gp = grid::gpar(col = "black", lty = "dashed", lwd = width))
+    for (row in (seq_len(nrow(bedpedata)))) {
+        x1     = bedpedata$pos1[row]
+        x2     = bedpedata$pos2[row]
+        height = bedpedata$height[row]
+        width  = bedpedata$width[row]
+        color  = bedpedata$color[row]
+        alpha  = bedpedata$alpha[row]
+        plotpair(x1, x2, height, totalrange, width, color, chromstart, alpha)
+    }
 }
 
 plotpair <- function(start, end, height, totalrange,
                      width, color, chromstart, alpha) {
-  #scale values for plotting
-  x1 = (min(start,end) - as.numeric(as.character(chromstart)))/totalrange
-  x2 = (max(start,end) - as.numeric(as.character(chromstart)))/totalrange
-  hx1 <- (x1 + x2)/2
-  hy1 <- height/.725
+    
+    #scale values for plotting
+    
+    x1 = (min(start, end) - as.numeric(as.character(chromstart)))/totalrange
+    x2 = (max(start,end) - as.numeric(as.character(chromstart)))/totalrange
+    hx1 <- (x1 + x2)/2
+    hy1 <- height/.725
 
-  grid::grid.bezier(x = c(x1, hx1, hx1, x2), y = c(0, hy1, hy1, 0),
-                    default.units = "npc",
-                    gp=grid::gpar(col=color, lwd=width,
-                                  alpha = (alpha*.9 + .1),fontsizecex = 10))
+    grid::grid.bezier(x = c(x1, hx1, hx1, x2), y = c(0, hy1, hy1, 0),
+                      default.units = "npc",
+                      gp = grid::gpar(col = color, lwd = width,
+                                    alpha = (alpha * .9 + .1),fontsizecex = 10))
 }
 
 get_results <- function(chr, start, end, minbp, maxbp, gene_anno, track_size, gene_model_shape,
@@ -343,7 +381,7 @@ get_results <- function(chr, start, end, minbp, maxbp, gene_anno, track_size, ge
                                      col = "#81D2C7",  fontcolor = "black",
                                      fontcolor.group = "black", fontsize.group = 6,
                                      fontsize = 6, shape = gene_model_shape, 
-                                     collapseTranscripts = "longest",cex.group = 1)
+                                     collapseTranscripts = "longest", cex.group = 1)
         
     #generate peak connection data frame
         
@@ -370,9 +408,9 @@ get_results <- function(chr, start, end, minbp, maxbp, gene_anno, track_size, ge
     #get grang of peaks and generate dataTrack
     
     gr <- make_peak_track(sub)
-    bk <- c(seq(-1, -0.1, by = 0.01),seq(0, 1, by = 0.01))
-    dk <- c(colorRampPalette(colors = c("blue","white"))(length(bk)/2),
-            colorRampPalette(colors = c("white","red"))(length(bk)/2))
+    bk <- c(seq(-1, -0.1, by = 0.01), seq(0, 1, by = 0.01))
+    dk <- c(colorRampPalette(colors = c("blue", "white"))(length(bk)/2),
+            colorRampPalette(colors = c("white", "red"))(length(bk)/2))
     dtrack <- DataTrack(gr, type = c("heatmap"), chromosome = chr, gradient = dk, 
                         ylim = c(-1 , 1), yTicksAt = c(-1, -0.5, 0, 0.5), name = "scMAGeCK score")
     
@@ -380,10 +418,10 @@ get_results <- function(chr, start, end, minbp, maxbp, gene_anno, track_size, ge
     
     if (!nrow(sub) == 0) {
         if (connection_color %in% names(sub)) {
-            color_levs <- levels(as.factor(sub[ ,connection_color]))
+            color_levs <- levels(as.factor(sub[, connection_color]))
             color_names <- rep("temp", length(color_levs))
             names(color_names) <- color_levs
-            new_connection_color <- get_colors(sub[ ,connection_color])
+            new_connection_color <- get_colors(sub[, connection_color])
             for(n in color_levs) {
                 color_names[n] <- new_connection_color[which(sub[,connection_color] == n)[1]]
             }
@@ -408,7 +446,8 @@ get_results <- function(chr, start, end, minbp, maxbp, gene_anno, track_size, ge
                       max(abs(as.numeric(connection_df$coaccess))), score_cut,
                       connection_width, alpha_by_coaccess, color_names)
             }
-        return(invisible(GdObject))}, name = "regulatory potential", fontsize.group = 6, fontsize = 12, cex.title = 1.3)
+        return(invisible(GdObject))}, name = "regulatory potential", 
+                          fontsize.group = 6, fontsize = 12, cex.title = 1.3)
         
     #in order to show all the gene names
     
@@ -425,28 +464,29 @@ get_results <- function(chr, start, end, minbp, maxbp, gene_anno, track_size, ge
                                              title.width = 1.3, showTitle = TRUE, from = minbp, to = maxbp, 
                                              chromosome = chr, sizes = track_size, 
                                              transcriptAnnotation = "symbol", background.title = "transparent",
-                                             col.border.title="transparent", lwd.border.title = "transparent",
-                                             col.axis = "black", fontsize.group = 6, col.title="black",
+                                             col.border.title = "transparent", lwd.border.title = "transparent",
+                                             col.axis = "black", fontsize.group = 6, col.title = "black",
                                              fontcolor.legend = "black"))
     }else{
         gg <- as.ggplot(function()plotTracks(list(ctrack, dtrack, grtrack), 
                                              title.width = 1.3, showTitle = TRUE, from = minbp, to = maxbp, 
                                              chromosome = chr, sizes = track_size, 
                                              transcriptAnnotation = "symbol", background.title = "transparent",
-                                             col.border.title="transparent", lwd.border.title = "transparent",
-                                             col.axis = "black", fontsize.group = 6, col.title="black",
+                                             col.border.title = "transparent", lwd.border.title = "transparent",
+                                             col.axis = "black", fontsize.group = 6, col.title = "black",
                                              fontcolor.legend = "black"))
     }
     return(gg)
 }
+                        
 #' @export    
     
 ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species = "Hs", version = "v75",
                           gene_annotations = NULL, pro_annotations = NULL, pro_up = 3000, pro_down = 0, 
                           overlap_cut = 0, p_val_cut = 0.05, score_cut = 0, p_adj_cut = 0.05, logFC_cut = 1, 
                           NTC = "NTC", min.pct = 0.2, upstream = 2000000, downstream = 2000000, test.use = "wilcox", 
-                          track_size = c(1,.3,.2,.3), include_axis_track = TRUE, connection_color = "#7F7CAF", 
-                          connection_color_legend = TRUE, connection_width = 2,connection_ymax = NULL, 
+                          track_size = c(1, .3, .2, .3), include_axis_track = TRUE, connection_color = "#7F7CAF", 
+                          connection_color_legend = TRUE, connection_width = 2, connection_ymax = NULL, 
                           gene_model_color = "#81D2C7", alpha_by_coaccess = FALSE, 
                           gene_model_shape = c("smallArrow", "box")){
     
@@ -470,7 +510,7 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
                 a <- genes(EnsDb.Mmusculus.v79)
             }
         }
-        gene_anno<- data.frame(a)
+        gene_anno <- data.frame(a)
         gene_anno$chromosome <- paste0("chr", gene_anno$seqnames)
         gene_anno$transcript <- gene_anno$symbol
     }else{
@@ -495,7 +535,7 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
                 b <- promoters(EnsDb.Mmusculus.v79)
             }
         }
-        pro_anno<- data.frame(b)
+        pro_anno <- data.frame(b)
         pro_anno$chromosome <- paste0("chr", pro_anno$seqnames)
     }else{
         pro_anno <- pro_annotations
@@ -527,6 +567,21 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
     if(is.null(selected)){
         selected <- colnames(score)[which(colnames(score) != "NegCtrl")]
     }
+    
+    dir <- file.path(prefix, "cicero_results")
+    if (!dir.exists(dir)) {
+        dir.create(path = dir)
+    }
+    
+    img_dir <- file.path(prefix, "img")
+    if (!dir.exists(img_dir)) {
+        dir.create(path = img_dir)
+    }
+    img_dir <- file.path(img_dir, "cicero")
+    if (!dir.exists(img_dir)) {
+        dir.create(path = img_dir)
+    }
+    
     if(is.character(selected)){
         if(length(selected) == 1){
             #get DA peaks and enhancer list
@@ -554,6 +609,17 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
             #get results for all candidate enhancer
                 
             j <- 0
+            
+            selected <- gsub(":", ".", selected)
+            dir1 <- file.path(dir, selected)
+            if (!dir.exists(dir1)) {
+                dir.create(path = dir1)
+            }
+            dir2 <- file.path(img_dir, selected)
+            if (!dir.exists(dir2)) {
+                dir.create(path = dir2)
+            }
+            
             for(i in 1:nrow(enhancer_list)){
                 chr <- enhancer_list[i, "chromosome"]
                 start <- as.numeric(enhancer_list[i, "start"])
@@ -575,9 +641,20 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
                 j <- j + 1
                 peak <- paste(chr, start, end, sep = "-")
                 gg <- gg + labs(title = paste(selected, peak, sep = ":")) + 
-                theme(plot.title = element_text(hjust = 0.5), text = element_text(size = 12,face = "bold"))
+                theme(plot.title = element_text(hjust = 0.5), text = element_text(size = 12, face = "bold"))
                 results[[j]] <- gg
                 names(results)[j] <- peak
+                
+                #save plot
+                
+                pdf(file = file.path(dir1, paste(peak, ".pdf", sep = "")))
+                print(gg)
+                dev.off()
+        
+                png(file.path(dir2, paste(peak, ".png", sep = "")), 
+                    width = 600 * 3, height = 600 * 3, res = 72 * 3)
+                print(gg)
+                dev.off()
             }
         }else{
                 
@@ -585,6 +662,7 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
                 
             k <- 0
             for(TF in selected){
+                
                 #get DA peaks and enhancer list
                     
                 da_peak <- DApeaks(object, selected = TF, NTC, min.pct, test.use, p_adj_cut, logFC_cut)
@@ -596,13 +674,13 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
                     enhancer_list <- enhancer(da_peak, pro_anno, overlap_cut, pro_up = pro_up, pro_down = pro_down)
                 }
                 if(nrow(da_peak) == nrow(enhancer_list)){
-                    warning(paste("All DA peaks has overlap with promoters in ", TF, ", using all DA peaks passed threshold as input list", sep = "'"))
+                    warning(paste("All DA peaks has overlap with promoters in ", 
+                                  TF, ", using all DA peaks passed threshold as input list", sep = "'"))
                 }
 
-                
                 #get score and p-value of selected enhancer
                 
-                conn_input <- data.frame(score = score[, TF], pval = pval[, TF])
+                conn_input <- data.frame(score = score[ ,TF], pval = pval[ ,TF])
                 rownames(conn_input) <- rownames(score)
                 conn_input <- subset(conn_input, ((score > score_cut) | (score < -score_cut)) & pval < p_val_cut)
                 if(nrow(conn_input) == 0){
@@ -615,6 +693,17 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
                 sub_results <- list()
                 
                 j <- 0
+                
+                TF <- gsub(":", ".", TF)
+                dir1 <- file.path(dir, TF)
+                if (!dir.exists(dir1)) {
+                    dir.create(path = dir1)
+                }
+                dir2 <- file.path(img_dir, TF)
+                if (!dir.exists(dir2)) {
+                    dir.create(path = dir2)
+                }
+                
                 for(i in 1:nrow(enhancer_list)){
                     chr <- enhancer_list[i, "chromosome"]
                     start <- as.numeric(enhancer_list[i, "start"])
@@ -622,8 +711,8 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
                     
                     #extend region
                     
-                    minbp<- start - upstream
-                    maxbp<- end + downstream
+                    minbp <- start - upstream
+                    maxbp <- end + downstream
                     
                     #get results
                     
@@ -636,9 +725,23 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
                     j <- j + 1
                     peak <- paste(chr, start, end, sep = "-")
                     gg <- gg + labs(title = paste(TF, peak, sep = ":")) + 
-                            theme(plot.title = element_text(hjust = 0.5), text = element_text(size = 12,face = "bold"))
+                            theme(plot.title = element_text(hjust = 0.5), 
+                                  text = element_text(size = 12, face = "bold"))
                     sub_results[[j]] <- gg
                     names(sub_results)[j] <- peak
+                    
+                                    
+                    #save plot
+                
+                    pdf(file = file.path(dir1, paste(peak, ".pdf", sep = "")))
+                    print(gg)
+                    dev.off()
+        
+                    png(file.path(dir2, paste(peak, ".png", sep = "")), 
+                        width = 600 * 3, height = 600 * 3, res = 72 * 3)
+                    print(gg)
+                    dev.off()
+                    
                 }
                 if(length(sub_results) != 0){
                     k <- k + 1

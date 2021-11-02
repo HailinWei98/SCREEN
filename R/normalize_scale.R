@@ -2,6 +2,7 @@
 #' @export
 
 normalize_scale<- function(mtx_dir){
+    
     #read file
     
     if (is.character(mtx_dir)) {
@@ -17,7 +18,6 @@ normalize_scale<- function(mtx_dir){
         object = perturb_QC,
         normalization.method = "LogNormalize",
         scale.factor = 10000)
-    perturb_QC <- FindVariableFeatures(perturb_QC, selection.method = "vst", nfeatures = 2000)
     if("percent.mt" %in% colnames(perturb_QC@meta.data)){
         perturb_QC <- ScaleData(perturb_QC, features = rownames(perturb_QC),
                                 vars.to.regress = c("nCount_RNA", "percent.mt"))

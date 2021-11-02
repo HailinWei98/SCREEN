@@ -3,25 +3,23 @@
 #' the perturbation
 
 frame2indmatrix <- function(bc_d, targetobj) {
-  rnm = unique(bc_d$cell)
-  cnm = unique(bc_d$gene)
-  scalef = targetobj
-  message(paste(length(rnm), "..."))
-  message(paste(ncol(scalef), "..."))
-  rnm = rnm[!is.na(rnm)] #remove NA
-  #rnm = rnm[rnm %in% colnames(scalef)]
-  if (length(rnm) == 0) {
-    stop("Cell names do not match in expression matrix and barcode.")
-  }
-  cnm = cnm[!is.na(cnm)]#remove NA
-  ind_matrix = matrix(rep(0, length(rnm) * length(cnm)), nrow = length(rnm))
-  rownames(ind_matrix) = rnm
-  colnames(ind_matrix) = cnm
-  row <- bc_d[, 'cell']
-  col <- bc_d[, 'gene']
-  test <- (row %in% rnm) & (col %in% cnm)
-  idx <- cbind(row[test], col[test])
-  #idx<- unique(cbind(bc_d$cell, bc_d$gene))
-  ind_matrix[idx]  <- 1
-  return(ind_matrix)
+    rnm = unique(bc_d$cell)
+    cnm = unique(bc_d$gene)
+    scalef = targetobj
+    message(paste(length(rnm), "..."))
+    message(paste(ncol(scalef), "..."))
+    rnm = rnm[!is.na(rnm)] #remove NA
+    if (length(rnm) == 0) {
+        stop("Cell names do not match in expression matrix and barcode.")
+    }
+    cnm = cnm[!is.na(cnm)]#remove NA
+    ind_matrix = matrix(rep(0, length(rnm) * length(cnm)), nrow = length(rnm))
+    rownames(ind_matrix) = rnm
+    colnames(ind_matrix) = cnm
+    row <- bc_d[, 'cell']
+    col <- bc_d[, 'gene']
+    test <- (row %in% rnm) & (col %in% cnm)
+    idx <- cbind(row[test], col[test])
+    ind_matrix[idx]  <- 1
+    return(ind_matrix)
 }

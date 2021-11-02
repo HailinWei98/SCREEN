@@ -5,6 +5,11 @@
 
 scQC<- function(mtx_dir, prefix = "./", label = "", species = "Hs", gene_frac = 0.01,
                 nFeature = c(200, 5000), nCount = 1000, mt = 10, blank_NTC = FALSE){
+    
+    dir <- file.path(prefix, "img")
+    if (!(dir.exists(dir))) {
+        dir.create(dir)
+    }
 
     #read file
     
@@ -24,14 +29,6 @@ scQC<- function(mtx_dir, prefix = "./", label = "", species = "Hs", gene_frac = 
     }
     perturb$nFeature_RNA <- perturb[[paste("nFeature_", perturb@active.assay, sep = "")]][, 1]
     perturb$nCount_RNA <- perturb[[paste("nCount_", perturb@active.assay, sep = "")]][, 1]
-    
-    #QC plot of the single cell matrix
-    
-    pdf(file = file.path(prefix, paste(label, "raw_matrix_quality_vlnplot.pdf", sep = "")))
-    p1 <- VlnPlot(perturb, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3, pt.size = 0.1)
-    print(p1)
-    dev.off()
-
 
     #filter cells with low quality
         
@@ -58,10 +55,32 @@ scQC<- function(mtx_dir, prefix = "./", label = "", species = "Hs", gene_frac = 
     }else{
         perturb_QC[["percent.mt"]] <- PercentageFeatureSet(perturb_QC, pattern = "^mt-")
     }
-    pdf(file = file.path(prefix, paste(label, "QC_matrix_quality_vlnplot.pdf", sep = "")))
+    
+    #QC plot of the single cell matrix
+    
+    img_dir <- file.path(dir, "quality")
+    if (!(dir.exists(img_dir))) {
+        dir.create(img_dir)
+    }
+    p1 <- VlnPlot(perturb, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3, pt.size = 0.1)
+
+    png(file.path(img_dir, paste(label, "raw_matrix_quality_vlnplot.png", sep = "")), 
+        width = 500, height = 500)
+    print(p1)
+    dev.off()
+    
     p2 <- VlnPlot(perturb_QC, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3, pt.size = 0.1)
+
+    png(file.path(img_dir, paste(label, "QC_matrix_quality_vlnplot.png", sep = "")), 
+        width = 500, height = 500)
     print(p2)
     dev.off()
     
+    pdf(file = file.path(prefix, paste(label, "QC_matrix_quality_vlnplot.pdf", sep = "")))
+    print(p2)
+    dev.off()
+    pdf(file = file.path(prefix, paste(label, "raw_matrix_quality_vlnplot.pdf", sep = "")))
+    print(p1)
+    dev.off()
     return(perturb_QC)
 }

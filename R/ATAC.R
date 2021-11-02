@@ -1,5 +1,5 @@
-#' @export
 #' @import Signac
+#' @export
 
 ATAC_Add_meta_data <- function(sg_dir, mtx_dir, fragments, replicate = 1, cal.FRiP = TRUE){
     
@@ -11,15 +11,11 @@ ATAC_Add_meta_data <- function(sg_dir, mtx_dir, fragments, replicate = 1, cal.FR
     
     if(cal.FRiP == TRUE){
         if(is.character(fragments)){
-            if(fragments %in% colnames(peak@meta.data)){
-                peak <- FRiP(peak, "peaks", total.fragments = fragments)
-            }else{
-                frag <- CountFragments(fragments = fragments, cells = colnames(peak))
-                peak$fragments <- frag$reads_count
-                peak <- FRiP(peak, "peaks", total.fragments = "fragments")
-            }
+            frag <- CountFragments(fragments = fragments, cells = colnames(peak))
+            peak$fragments <- frag$reads_count
+            peak <- FRiP(peak, "peaks", total.fragments = "fragments")
         }else{
-            stop("Please provide the path of fragments file or meta data name of total fragments counts")
+            stop("Please provide the path of fragments file")
         }
     }else{
         if(!("FRiP" %in% colnames(peak@meta.data))){
@@ -32,7 +28,18 @@ ATAC_Add_meta_data <- function(sg_dir, mtx_dir, fragments, replicate = 1, cal.FR
 
 #' @export
 
-ATAC_scQC <- function(mtx_dir, prefix = "./", label = "", peak_frac = 0.01, nFeature = c(200, 500000), nCount = 1000, FRiP = 0.1, blank_NTC = FALSE){
+ATAC_scQC <- function(mtx_dir, prefix = "./", label = "", peak_frac = 0.01, 
+                      nFeature = c(200, 500000), nCount = 1000, FRiP = 0.1, blank_NTC = FALSE){
+    
+    dir <- file.path(prefix, "img")
+    if (!(dir.exists(dir))) {
+        dir.create(dir)
+    }
+    
+    dir1 <- file.path(dir, "ATAC_quality")
+    if (!(dir.exists(dir1))){
+        dir.create(dir1)
+    }
     
     #read file
     
@@ -47,7 +54,7 @@ ATAC_scQC <- function(mtx_dir, prefix = "./", label = "", peak_frac = 0.01, nFea
         stop("Cannot find meta data names 'replicate' or 'perturbations' in input matrix.")
     }
     
-    if(!("FRiP" %in% colnames(peak@meta.data))){
+    if(!("FRiP" %in% colnames(perturb@meta.data))){
         warning("No meta data named 'FRiP' in input peak matrix. We will set the 'FRiP' of each cell to 1.")   
     }
     perturb$nFeature_peak <- perturb[[paste("nFeature_", perturb@active.assay, sep = "")]][, 1]
@@ -57,6 +64,11 @@ ATAC_scQC <- function(mtx_dir, prefix = "./", label = "", peak_frac = 0.01, nFea
     
     pdf(file = file.path(prefix, paste(label, "raw_matrix_quality_vlnplot.pdf", sep = "")))
     p1 <- VlnPlot(perturb, features = c("nFeature_peak", "nCount_peak", "FRiP"), ncol = 3, pt.size = 0.1)
+    print(p1)
+    dev.off()
+    
+    png(file.path(dir1, paste(label, "raw_matrix_quality_vlnplot.png", sep = "")), 
+        width = 500, height = 500)
     print(p1)
     dev.off()
 
@@ -83,18 +95,22 @@ ATAC_scQC <- function(mtx_dir, prefix = "./", label = "", peak_frac = 0.01, nFea
         perturb_QC$FRiP <- perturb$FRiP
     }
     
-  pdf(file = file.path(prefix, paste(label, "QC_matrix_quality_vlnplot.pdf", sep = "")))
-  p2 <- VlnPlot(perturb_QC, features = c("nFeature_peak", "nCount_peak", "FRiP"), ncol = 3, pt.size = 0.1)
-  print(p2)
-  dev.off()
-
-  #saveRDS(perturb_QC,file=file.path(prefix, "perturb_QC.rds"))
-  return(perturb_QC)
+    pdf(file = file.path(prefix, paste(label, "QC_matrix_quality_vlnplot.pdf", sep = "")))
+    p2 <- VlnPlot(perturb_QC, features = c("nFeature_peak", "nCount_peak", "FRiP"), ncol = 3, pt.size = 0.1)
+    print(p2)
+    dev.off()
+    
+    png(file.path(dir1, paste(label, "QC_matrix_quality_vlnplot.png", sep = "")), 
+        width = 500, height = 500)
+    print(p2)
+    dev.off()
+    return(perturb_QC)
 }
 
 #' @export
 
-CalculateGeneActivity <- function(mtx_dir, fragments, species = "Hs", version = "v75", gene_type = "Symbol", protein_coding = TRUE, pro_up = 3000, pro_down = 0){
+CalculateGeneActivity <- function(mtx_dir, fragments, species = "Hs", version = "v75", 
+                                  gene_type = "Symbol", protein_coding = TRUE, pro_up = 3000, pro_down = 0){
     
     #get promoter region
     
@@ -114,17 +130,18 @@ CalculateGeneActivity <- function(mtx_dir, fragments, species = "Hs", version = 
     #get fragments
     
     if(is.character(fragments)){
-        fragments<- CreateFragmentObject(fragments, cells = colnames(perturb))
+        fragments <- CreateFragmentObject(fragments, cells = colnames(perturb))
     }
     
     #calculate gene activity
     
-    gene.activity<- FeatureMatrix(fragments = fragments, features = genebodyandpromoter.coords, cells = colnames(perturb))
+    gene.activity <- FeatureMatrix(fragments = fragments, 
+                                   features = genebodyandpromoter.coords, cells = colnames(perturb))
     
     #generate gene activity matrix
     
     rownames(gene.activity) <- gene.key[rownames(gene.activity)]
-    perturb_RNA<- CreateSeuratObject(counts = gene.activity, project = perturb@project.name)
+    perturb_RNA <- CreateSeuratObject(counts = gene.activity, project = perturb@project.name)
     if("replicate" %in% colnames(perturb@meta.data)){
         replicate <- perturb$replicate
         perturb_RNA$replicate <- replicate
@@ -138,7 +155,8 @@ CalculateGeneActivity <- function(mtx_dir, fragments, species = "Hs", version = 
 
 #' @export
 
-GetPromoter <- function(species = "Hs", version = "v75", gene_type = "Symbol", protein_coding = TRUE, pro_up = 3000, pro_down = 0){
+GetPromoter <- function(species = "Hs", version = "v75", gene_type = "Symbol", 
+                        protein_coding = TRUE, pro_up = 3000, pro_down = 0){
 
     #get gene ranges from selected reference
     if(species == "Hs"){
@@ -165,7 +183,8 @@ GetPromoter <- function(species = "Hs", version = "v75", gene_type = "Symbol", p
 
     gene.ranges <- keepStandardChromosomes(gene.ranges, pruning.mode = 'coarse')
 
-    genebodyandpromoter.coords <- suppressWarnings(trim(Extend(x = gene.ranges, upstream = pro_up, downstream = pro_down)))
+    genebodyandpromoter.coords <- suppressWarnings(trim(Extend(x = gene.ranges, 
+                                                               upstream = pro_up, downstream = pro_down)))
 
     if(gene_type == "Symbol"){
         gene.key <- genebodyandpromoter.coords$gene_name
