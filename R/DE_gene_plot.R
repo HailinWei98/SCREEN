@@ -25,10 +25,10 @@ DE_gene_plot<- function(score_dir, pval_dir, project = "perturb",
     for(i in colnames(score)){
         scmageck <- data.frame(t(rbind(score[, i], p_val[, i])))
         colnames(scmageck) <- c("score", "p_val")
-        scmageck$diff <- "non"
-        scmageck$diff[scmageck$score > score_cut & scmageck$p_val < p_val_cut] <- "up"
-        scmageck$diff[scmageck$score < -score_cut & scmageck$p_val < p_val_cut] <- "down"
-        a <- plyr::count(scmageck$diff)
+        scmageck$Difference <- "non"
+        scmageck$Difference[scmageck$score > score_cut & scmageck$p_val < p_val_cut] <- "up"
+        scmageck$Difference[scmageck$score < -score_cut & scmageck$p_val < p_val_cut] <- "down"
+        a <- plyr::count(scmageck$Difference)
         rownames(a) <- a$x
         for(j in a$x){
             de_genes[i, j] <- a[j, 2]
@@ -37,9 +37,9 @@ DE_gene_plot<- function(score_dir, pval_dir, project = "perturb",
     
     new <- data.frame(reshape2::melt(de_genes[, 2:3]))
     new$factor <- rep(rownames(de_genes), 2)
-    colnames(new) <- c("diff", "gene_numbers", "factor")
+    colnames(new) <- c("Difference", "gene_numbers", "factor")
     new1 <- new
-    new1$diff <- as.character(new1$diff)
+    new1$Difference <- as.character(new1$Difference)
     
     #get total DE gene numbers of all perturbations
     
@@ -48,9 +48,9 @@ DE_gene_plot<- function(score_dir, pval_dir, project = "perturb",
         all <- sum(a$gene_numbers)
         new1 <- rbind(new1, c("all", all, i))
     }
-    new2 <- subset(new1, diff == "all")
+    new2 <- subset(new1, Difference == "all")
     new3 <- subset(new, factor %in% head(new2[order(as.numeric(new2$gene_numbers), decreasing = T), ], 20)$factor)
-    new3[which(new3$diff == "down"), ]$gene_numbers <- -new3[which(new3$diff == "down"), ]$gene_numbers
+    new3[which(new3$Difference == "down"), ]$gene_numbers <- -new3[which(new3$Difference == "down"), ]$gene_numbers
     
     #get range of y axis
     
@@ -73,17 +73,17 @@ DE_gene_plot<- function(score_dir, pval_dir, project = "perturb",
     #plot
     
     p1 <- ggplot(new3, aes(x = factor, y = gene_numbers)) +
-    geom_bar(stat = 'identity', aes(fill = diff)) +
+    geom_bar(stat = 'identity', aes(fill = Difference)) +
     theme_classic() +
     labs(x = "Perturbation", y = "Gene Numbers", title = project) +
-    theme(plot.title = element_text(hjust = 0.5, size = 20),
+    theme(plot.title = element_text(hjust = 0.5, size = 25),
           text = element_text(hjust = 0.5, face = "bold"),
-          legend.text = element_text(size = 14),
+          legend.text = element_text(size = 16),
           legend.title = element_text(size = 20),
-          axis.text.x = element_text(angle = 90, hjust = 0.5, vjust = 0.5, size = 12),
-          axis.title.x = element_text(size = 16), 
-          axis.title.y = element_text(size = 16),
-          axis.text.y = element_text(angle = 90, hjust = 0.5, size = 12)) +
+          axis.text.x = element_text(angle = 90, hjust = 0.5, vjust = 0.5, size = 16),
+          axis.title.x = element_text(size = 20), 
+          axis.title.y = element_text(size = 20),
+          axis.text.y = element_text(hjust = 0.5, size = 16)) +
     scale_y_continuous(limits = c(ylimit[1], ylimit[2]),
                        breaks = seq(ylimit[1], ylimit[2], ylimit[3]),
                        labels = c(seq(ylimit[2], 0, -ylimit[3]),
@@ -91,17 +91,32 @@ DE_gene_plot<- function(score_dir, pval_dir, project = "perturb",
     
     #save plot
     
-    dir <- file.path(prefix, "img")
+    img_dir <- file.path(prefix, "img")
+    if (!(dir.exists(img_dir))) {
+        dir.create(img_dir)
+    }
+    
+    img_dir <- file.path(img_dir, "perturbation_efficiency")
+    if (!(dir.exists(img_dir))) {
+        dir.create(img_dir)
+    }
+    
+    dir <- file.path(prefix, "pdf")
     if (!(dir.exists(dir))) {
         dir.create(dir)
     }
     
-    pdf(file.path(prefix,
+    dir <- file.path(dir, "perturbation_efficiency")
+    if (!(dir.exists(dir))) {
+        dir.create(dir)
+    }
+    
+    pdf(file.path(dir,
                   paste(label, "DE_gene_cutoff", score_cut, "_p", p_val_cut, ".pdf", sep = "")))
     print(p1)
     dev.off()
     
-    png(file.path(dir, 
+    png(file.path(img_dir, 
                   paste(label, "DE_gene_cutoff", score_cut, "_p", p_val_cut, ".png", sep = "")), 
         width = 600 * 3, height = 600 * 3, res = 72 * 3)
     print(p1)

@@ -25,12 +25,28 @@ GOenrichment <- function(score_dir, pval_dir, p_val_cut = 0.05, score_cut = 0.5,
     
     results <- list()
     j = 0
-    dir <- file.path(prefix, "GO_results")
+    
+    dir <- file.path(prefix, "pdf")
+    if (!(dir.exists(dir))) {
+        dir.create(path = dir)
+    }
+    
+    dir <- file.path(dir, "potential_target_gene")
+    if (!(dir.exists(dir))) {
+        dir.create(path = dir)
+    }
+    
+    dir <- file.path(dir, "GO")
     if (!(dir.exists(dir))) {
         dir.create(path = dir)
     }
     
     img_dir <- file.path(prefix, "img")
+    if (!(dir.exists(img_dir))) {
+        dir.create(img_dir)
+    }
+    
+    img_dir <- file.path(img_dir, "potential_target_gene")
     if (!(dir.exists(img_dir))) {
         dir.create(img_dir)
     }
@@ -108,25 +124,104 @@ GOenrichment <- function(score_dir, pval_dir, p_val_cut = 0.05, score_cut = 0.5,
         if (!is.numeric(showCategory)) {
             stop("showCategory must be numeric")
         }
-        MF_results <- na.omit(as.data.frame(MF_ego))[1:showCategory, ]
-        BP_results <- na.omit(as.data.frame(BP_ego))[1:showCategory, ]
-        CC_results <- na.omit(as.data.frame(CC_ego))[1:showCategory, ]
-
-        all_results <- as.data.frame(rbind(MF_results, CC_results, BP_results))
-        colnames(all_results) <- colnames(BP_results)
-
-        all_results$ONTOLOGY <- factor(rep(c("MF", "CC", "BP"), each = 10), levels = c("BP", "CC", "MF"), ordered = T)
-
+        MF_results <- na.omit(as.data.frame(MF_ego))
+        BP_results <- na.omit(as.data.frame(BP_ego))
+        CC_results <- na.omit(as.data.frame(CC_ego))
+        
+        if (nrow(MF_results) > 0 & 
+            nrow(BP_results) > 0 & 
+            nrow(CC_results) > 0) {
+            
+            MF_results <- na.omit(MF_results[1:showCategory, ])
+            BP_results <- na.omit(BP_results[1:showCategory, ])
+            CC_results <- na.omit(CC_results[1:showCategory, ])
+            all_results <- as.data.frame(rbind(MF_results, CC_results, BP_results))
+            colnames(all_results) <- colnames(BP_results)
+            all_results$ONTOLOGY <- factor(c(rep("MF", nrow(MF_results)), 
+                                             rep("CC", nrow(CC_results)), 
+                                             rep("BP", nrow(BP_results))), 
+                                           levels = c("BP", "CC", "MF"), ordered = T)
+            final_color <- c("#8DA1CB", "#FD8D62", "#66C3A5")
+            
+        } else if (nrow(MF_results) > 0 & 
+                   nrow(BP_results) > 0 & 
+                   nrow(CC_results) == 0) {
+            
+            MF_results <- na.omit(MF_results[1:showCategory, ])
+            BP_results <- na.omit(BP_results[1:showCategory, ])
+            all_results <- as.data.frame(rbind(MF_results, BP_results))
+            colnames(all_results) <- colnames(BP_results)
+                
+            all_results$ONTOLOGY <- factor(c(rep("MF", nrow(MF_results)), 
+                                             rep("BP", nrow(BP_results))), 
+                                           levels = c("BP", "MF"), ordered = T)
+            final_color <- c("#8DA1CB", "#66C3A5")
+            
+        } else if(nrow(MF_results) > 0 & 
+                  nrow(BP_results) == 0 & 
+                  nrow(CC_results) > 0){
+            
+            MF_results <- na.omit(MF_results[1:showCategory, ])
+            CC_results <- na.omit(CC_results[1:showCategory, ])
+            all_results <- as.data.frame(rbind(MF_results, CC_results))
+            colnames(all_results) <- colnames(CC_results)
+                
+            all_results$ONTOLOGY <- factor(c(rep("MF", nrow(MF_results)),
+                                             rep("CC", nrow(CC_results))),
+                                           levels = c("CC", "MF"), ordered = T)
+            final_color <- c("#FD8D62", "#66C3A5")
+            
+        } else if(nrow(MF_results) == 0 & 
+                  nrow(BP_results) > 0 & 
+                  nrow(CC_results) > 0){
+            
+            BP_results <- na.omit(BP_results[1:showCategory, ])
+            CC_results <- na.omit(CC_results[1:showCategory, ])
+            all_results <- as.data.frame(rbind(CC_results, BP_results))
+            colnames(all_results) <- colnames(BP_results)
+                
+            all_results$ONTOLOGY <- factor(c(rep("CC", nrow(CC_results)),
+                                             rep("BP", nrow(BP_results))), 
+                                           levels = c("BP", "CC"), ordered = T)
+            final_color <- c("#8DA1CB", "#FD8D62")
+            
+        } else if(nrow(MF_results) == 0 & 
+                  nrow(BP_results) == 0 & 
+                  nrow(CC_results) > 0){
+            
+            all_results <- na.omit(CC_results[1:showCategory, ])
+            final_color <- "#FD8D62"
+            
+        } else if(nrow(MF_results) == 0 & 
+                  nrow(BP_results) > 0 & 
+                  nrow(CC_results) == 0){
+            
+            all_results <- na.omit(BP_results[1:showCategory, ])
+            final_color <- "#8DA1CB"
+            
+        } else if(nrow(MF_results) > 0 & 
+                  nrow(BP_results) == 0 & 
+                  nrow(CC_results) == 0){
+            
+            all_results <- na.omit(MF_results[1:showCategory, ])
+            final_color <- "#66C3A5"
+            
+        } 
+            
         #plot
         
         g1 <- ggplot(all_results) + geom_bar(aes(x = Description, y = Count, fill = ONTOLOGY), stat = 'identity') +
         labs(x = "GO Terms",y = "Gene Numbers",title = "GO Enrichment Results", fill = "Ontology") + 
         coord_flip() + scale_x_discrete(limits = all_results$Description) + theme_bw() +
-        theme(panel.grid = element_blank()) +  scale_fill_manual(values = c("#8DA1CB", "#FD8D62", "#66C3A5")) +
-        theme(plot.title = element_text(hjust = 0.5, size = 20), 
+        theme(panel.grid = element_blank()) + scale_fill_manual(values = final_color) +
+        theme(plot.title = element_text(hjust = 0.5, size = 25), 
               axis.text.y = element_text(size = 12),
-              axis.text.x = element_text(size = 12), axis.title.y = element_text(size = 16),
-              axis.title.x = element_text(size = 16))
+              axis.text.x = element_text(size = 12), 
+              axis.title.y = element_text(size = 20),
+              axis.title.x = element_text(size = 20),
+              legend.title = element_text(size = 18),
+              legend.text = element_text(size = 12),
+              text = element_text(hjust = 0.5, face = "bold"))
         
         #save results and return
         
@@ -134,12 +229,12 @@ GOenrichment <- function(score_dir, pval_dir, p_val_cut = 0.05, score_cut = 0.5,
         results[[j]] <- g1
         names(results)[j] <- gene
         
-        pdf(file = file.path(dir, paste(gene, ".pdf", sep = "")), width = 18, height = 6)
+        pdf(file = file.path(dir, paste(gene, ".pdf", sep = "")), width = 12, height = 6)
         print(g1)
         dev.off()
         
         png(file.path(img_dir, paste(gene, ".png", sep = "")), 
-            width = 1800 * 3, height = 600 * 3, res = 72 * 3)
+            width = 1200 * 3, height = 600 * 3, res = 72 * 3)
         print(g1)
         dev.off()
     }

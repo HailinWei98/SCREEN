@@ -1,25 +1,13 @@
 #' @export
 
-TFIDF <- function(object){
-    #get peak matrix
+DApeaks <- function(object, selected, NTC = "NTC", min.pct = 0.2, 
+                    test.use = "wilcox", p_adj_cut = 0.05, logFC_cut = 1){
     
     if(is.character(object)){
         peak <- readRDS(object)
     }else{
         peak <- object
     }
-    
-    peak<- RunTFIDF(peak)
-    
-    return(peak)
-}
-
-#' @export
-
-DApeaks <- function(object, selected, NTC = "NTC", min.pct = 0.2, 
-                    test.use = "wilcox", p_adj_cut = 0.05, logFC_cut = 1){
-    
-    peak <- object
     
     #rename ident
     
@@ -40,19 +28,20 @@ DApeaks <- function(object, selected, NTC = "NTC", min.pct = 0.2,
         ident.1 = selected,
         ident.2 = NTC,
         min.pct = min.pct,
-        test.use = test.use
+        test.use = test.use,
+        logfc.threshold = logFC_cut
         )
     if(nrow(da_peaks) == 0){
         return(NULL)
     }
-    da_peak <- subset(da_peaks, p_val_adj <= p_adj_cut & (avg_log2FC >= logFC_cut | avg_log2FC <= -logFC_cut))
+    da_peak <- subset(da_peaks, p_val_adj <= p_adj_cut)
     if(nrow(da_peak) == 0){
         return(NULL)
     }
     
-    da_peak$chromosome<- t(data.frame(strsplit(rownames(da_peak), "[.|:|-]")))[ ,1]
-    da_peak$start<- t(data.frame(strsplit(rownames(da_peak), "[.|:|-]")))[ ,2]
-    da_peak$end<- t(data.frame(strsplit(rownames(da_peak), "[.|:|-]")))[ ,3]
+    da_peak$chromosome <- t(data.frame(strsplit(rownames(da_peak), "[.|:|-]")))[ ,1]
+    da_peak$start <- t(data.frame(strsplit(rownames(da_peak), "[.|:|-]")))[ ,2]
+    da_peak$end <- t(data.frame(strsplit(rownames(da_peak), "[.|:|-]")))[ ,3]
     
     return(da_peak)
 }

@@ -37,24 +37,41 @@ fragmentsSize <- function(mtx_dir, fragments, CBCindex = 4, startIndex = 2,
     fragments_count <- subset(fragments_count, x <= maxSize)
     g1 <- ggplot(data = fragments_count, mapping = aes(x = x, y = freq)) +
     geom_line(size = 1, color = "red") + theme_classic() +
-    labs(x = "Fragments size", y = "Frequency",title = "Fragments Size Distribution") +
-    theme(plot.title = element_text(hjust = 0.5, size = 20), 
-          axis.text.y = element_text(angle = 90, hjust = 0.5, size = 12),
-          axis.text.x = element_text(size = 12), axis.title.y = element_text(size = 16),
-          axis.title.x = element_text(size = 16))
+    labs(x = "Fragments Size", y = "Frequency",title = "Fragments Size Distribution") +
+    theme(plot.title = element_text(hjust = 0.5, size = 25), 
+          text = element_text(hjust = 0.5, face = "bold"),
+          axis.text.y = element_text(hjust = 0.5, size = 16),
+          axis.text.x = element_text(size = 16), 
+          axis.title.y = element_text(size = 20),
+          axis.title.x = element_text(size = 20))
     
     #save plot
     
-    dir <- file.path(prefix, "img")
+    dir <- file.path(prefix, "pdf")
     if (!(dir.exists(dir))) {
         dir.create(dir)
     }
     
-    pdf(file = file.path(prefix, paste(label, "FragmentsSize.pdf", sep = "")))
+    dir <- file.path(dir, "ATAC_quality")
+    if (!(dir.exists(dir))) {
+        dir.create(dir)
+    }
+    
+    img_dir <- file.path(prefix, "img")
+    if (!(dir.exists(img_dir))) {
+        dir.create(img_dir)
+    }
+    
+    img_dir <- file.path(img_dir, "ATAC_quality")
+    if (!(dir.exists(img_dir))) {
+        dir.create(img_dir)
+    }
+    
+    pdf(file = file.path(dir, paste(label, "FragmentsSize.pdf", sep = "")))
     print(g1)
     dev.off()
     
-    png(file.path(dir, paste(label, "FragmentsSize.png", sep = "")), 
+    png(file.path(img_dir, paste(label, "FragmentsSize.png", sep = "")), 
         width = 600 * 3, height = 600 * 3, res = 72 * 3)
     print(g1)
     dev.off()

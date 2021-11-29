@@ -39,17 +39,17 @@ sgRNA_quality_plot<- function(sg_dir, mtx_dir, LABEL = "", prefix = "./"){
     geom_line(size = 1) + theme_classic() +
     geom_point(data = head(sg_count, 10),
                mapping = aes(x = order, y = freq, color = sgRNA), size = 5) +
-    labs(x = "sgRNA",y = "cell numbers",title = "cell numbers of sgRNA") +
-    theme(plot.title = element_text(hjust = 0.5, size = 20), 
+    labs(x = "sgRNA",y = "Cell Numbers",title = "Cell Numbers of sgRNA") +
+    theme(plot.title = element_text(hjust = 0.5, size = 25), 
           legend.text = element_text(size = 12),
           text = element_text(hjust = 0.5, face = "bold"),
           axis.ticks.x = element_blank(), 
           axis.text.x = element_blank(), 
           legend.title = element_text(size = 18),
-          axis.title.x = element_text(size = 16), 
-          axis.title.y = element_text(size = 16),
-          axis.text.y = element_text(angle = 90, hjust = 0.5, size = 12)) +
-    scale_color_discrete(name = "top 10 sgRNA", breaks = head(sg_count, 10)$sgRNA) +
+          axis.title.x = element_text(size = 20), 
+          axis.title.y = element_text(size = 20),
+          axis.text.y = element_text(hjust = 0.5, size = 16)) +
+    scale_color_discrete(name = "Top 10 sgRNA", breaks = head(sg_count, 10)$sgRNA) +
     guides(colour = guide_legend(title.hjust = 0.5))
 
     sg_num_count <- plyr::count(mtx[["sgRNA_num"]])
@@ -65,21 +65,26 @@ sgRNA_quality_plot<- function(sg_dir, mtx_dir, LABEL = "", prefix = "./"){
 
     g2 <- ggplot(sg_num_count,mapping = aes(x = sgRNA_num, y = freq)) +
     geom_bar(stat = "identity",color = "#e9ecef", fill = "#69b3a2") + theme_classic() + 
-    labs(x = "sgRNA numbers", y = "cell numbers", title = "sgRNA numbers in each cell") +
-    theme(plot.title = element_text(hjust = 0.5, size = 20),
+    labs(x = "sgRNA Numbers", y = "Cell Numbers", title = "sgRNA Numbers in Each Cell") +
+    theme(plot.title = element_text(hjust = 0.5, size = 25),
           text = element_text(hjust = 0.5, face = "bold"),
-          axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5, size = 12),
-          axis.title.x = element_text(size = 16), 
-          axis.title.y = element_text(size = 16),
-          axis.text.y = element_text(angle = 90, hjust = 0.5, size = 12)) +
-    geom_text(aes(label = freq), stat = "identity", vjust = -0.5)
+          axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5, size = 16),
+          axis.title.x = element_text(size = 20), 
+          axis.title.y = element_text(size = 20),
+          axis.text.y = element_text(hjust = 0.5, size = 16)) +
+    geom_text(aes(label = freq), stat = "identity", vjust = -0.5, size = 6)
 
     #save plot
     
-    pdf(file = file.path(prefix, paste(LABEL, "sgRNA_quality.pdf", sep = "")))
-    print(g1)
-    print(g2)
-    dev.off()
+    dir <- file.path(prefix, "pdf")
+    if (!(dir.exists(dir))) {
+        dir.create(dir)
+    }
+    
+    dir <- file.path(dir, "sgRNA")
+    if (!(dir.exists(dir))) {
+        dir.create(dir)
+    }
     
     img_dir <- file.path(prefix, "img")
     if (!(dir.exists(img_dir))) {
@@ -91,50 +96,54 @@ sgRNA_quality_plot<- function(sg_dir, mtx_dir, LABEL = "", prefix = "./"){
         dir.create(img_dir)
     }
 
+    pdf(file = file.path(dir, paste(LABEL, "sgRNA_quality.pdf", sep = "")), height = 8, width = 8)
+    print(g1)
+    print(g2)
+    dev.off()
     
     png(file.path(img_dir, paste(LABEL, "cell_numbers.png", sep = "")), 
-        width = 500, height = 500)
+        width = 600, height = 600)
     print(g1)
     dev.off()
     
     png(file.path(img_dir, paste(LABEL, "sgRNA_numbers.png", sep = "")), 
-        width = 500, height = 500)
+        width = 600, height = 600)
     print(g2)
     dev.off()
 
-    dir2 <- file.path(prefix, "sgRNA_quality_of_gene")
-    dir <- file.path(img_dir, "sgRNA_quality_of_gene")
-    if (!(dir.exists(dir))) {
-        dir.create(path = dir)
+    dir2 <- file.path(dir, "sgRNA_quality_of_gene")
+    new_dir <- file.path(img_dir, "sgRNA_quality_of_gene")
+    if (!(dir.exists(new_dir))) {
+        dir.create(path = new_dir)
     }
     if (!(dir.exists(dir2))) {
         dir.create(path = dir2)
     }
     
     for(select_gene in unique(sg_count$gene)){
-        pdf(file = file.path(dir2, paste(select_gene, ".pdf", sep = "")))
+        pdf(file = file.path(dir2, paste(select_gene, ".pdf", sep = "")), height = 8, width = 8)
         p1 <- ggplot(data = sg_count, mapping = aes(x = order, y = freq)) +
         geom_line(size = 1) + theme_classic() +
         geom_point(data = subset(sg_count, gene == select_gene),
                    mapping = aes(x = order, y = freq, color = sgRNA), size = 5)+
         labs(x = "sgRNA",y = "cell numbers",title = "cell numbers of sgRNA") +
-        theme(plot.title = element_text(hjust = 0.5, size = 20), 
+        theme(plot.title = element_text(hjust = 1, size = 25), 
               legend.text = element_text(size = 12),
               text = element_text(hjust = 0.5, face = "bold"),
               axis.ticks.x = element_blank(), 
               axis.text.x = element_blank(), 
               legend.title = element_text(size = 18),
-              axis.title.x = element_text(size = 16), 
-              axis.title.y = element_text(size = 16),
-              axis.text.y = element_text(angle = 90, hjust = 0.5, size = 12)) +
+              axis.title.x = element_text(size = 20), 
+              axis.title.y = element_text(size = 20),
+              axis.text.y = element_text(hjust = 0.5, size = 16)) +
         scale_color_discrete(name = paste("sgRNA of", select_gene, sep = " "),
                              breaks = head(subset(sg_count, gene == select_gene), 10)$sgRNA) +
         guides(colour = guide_legend(title.hjust = 0.5))
         print(p1)
         dev.off()
         
-        png(file.path(dir, paste(select_gene, ".png", sep = "")), 
-            width = 500, height = 500)
+        png(file.path(new_dir, paste(select_gene, ".png", sep = "")), 
+            width = 600, height = 600)
         print(p1)
         dev.off()
     }

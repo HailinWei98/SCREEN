@@ -24,12 +24,27 @@ volcano <- function(score_dir, pval_dir, p_val_cut = 0.05, score_cut = 0.5,
     results <- list()
     j = 0
     
-    dir <- file.path(prefix, "volcanoPlot")
+    dir <- file.path(prefix, "pdf")
+    if (!(dir.exists(dir))) {
+        dir.create(path = dir)
+    }
+    
+    dir <- file.path(dir, "perturbation_efficiency")
+    if (!(dir.exists(dir))) {
+        dir.create(path = dir)
+    }
+    
+    dir <- file.path(dir, "volcano")
     if (!(dir.exists(dir))) {
         dir.create(path = dir)
     }
     
     img_dir <- file.path(prefix, "img")
+    if (!(dir.exists(img_dir))) {
+        dir.create(path = img_dir)
+    }
+    
+    img_dir <- file.path(img_dir, "perturbation_efficiency")
     if (!(dir.exists(img_dir))) {
         dir.create(path = img_dir)
     }
@@ -43,7 +58,7 @@ volcano <- function(score_dir, pval_dir, p_val_cut = 0.05, score_cut = 0.5,
     
     #prepare color for plot
     
-    diff <- c("blue","grey","red")
+    diff <- c("#00BFC4","grey","#F8766D")
     names(diff) <- c("down", "non", "up")
 
     #plot for each perturbation
@@ -71,20 +86,20 @@ volcano <- function(score_dir, pval_dir, p_val_cut = 0.05, score_cut = 0.5,
         p1 <- ggplot(data = scmageck, mapping = aes(x = score, y = -log10(p_val), colour = diff, label = lab)) + 
         geom_point(size = 1) + 
         theme_classic() + 
-        labs(title = paste(i, "potential target gene", sep = " ")) + 
-        theme(plot.title = element_text(hjust = 0.5, size = 20), 
+        labs(title = paste(i, "Potential Target Genes", sep = " ")) + 
+        theme(plot.title = element_text(hjust = 0.5, size = 25), 
               text = element_text(hjust = 0.5, face = "bold"),
               legend.text = element_text(size = 16),
-              legend.title = element_text(size = 18),
-              axis.title.x = element_text(size = 16), 
-              axis.title.y = element_text(size = 16),
-              axis.text.y = element_text(angle = 90, hjust = 0.5, size = 12),
-              axis.text.x = element_text(size = 12)) +  
+              legend.title = element_text(size = 20),
+              axis.title.x = element_text(size = 20), 
+              axis.title.y = element_text(size = 20),
+              axis.text.y = element_text(hjust = 0.5, size = 16),
+              axis.text.x = element_text(size = 16)) +  
         scale_color_manual(values = diff[sort(unique(scmageck$diff))]) + 
         geom_vline(xintercept = c(-score_cut, score_cut), linetype = "dotted") + 
-        geom_text_repel(max.overlaps = 100, show.legend = FALSE) + 
+        geom_text_repel(max.overlaps = 500, show.legend = FALSE) + 
         xlim(-score_max, score_max) + ylim(0, 5) + 
-        guides(colour = guide_legend(title = "difference", title.hjust = 0.5))
+        guides(colour = guide_legend(title = "Difference", title.hjust = 0.5))
         
         #save results and return
         

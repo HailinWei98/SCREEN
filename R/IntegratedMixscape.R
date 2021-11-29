@@ -122,11 +122,27 @@ IntegratedMixscape<- function(sg_dir, mtx_dir,
 
     #save plots.
     
-    pdf(file.path(prefix, paste(label, "mixscape_before.pdf", sep = "")))
-    print(((p1 / p2 + patchwork::plot_layout(guides = 'auto')) | p3 ))
-    dev.off()
+    dir <- file.path(prefix, "pdf")
+    if (!(dir.exists(dir))) {
+        dir.create(dir)
+    }
+    
+    dir <- file.path(dir, "perturbation_efficiency")
+    if (!(dir.exists(dir))) {
+        dir.create(dir)
+    }
+    
+    dir <- file.path(dir, "mixscape")
+    if (!(dir.exists(dir))) {
+        dir.create(dir)
+    }
     
     img_dir <- file.path(prefix, "img")
+    if (!(dir.exists(img_dir))) {
+        dir.create(img_dir)
+    }
+    
+    img_dir <- file.path(img_dir, "perturbation_efficiency")
     if (!(dir.exists(img_dir))) {
         dir.create(img_dir)
     }
@@ -135,7 +151,10 @@ IntegratedMixscape<- function(sg_dir, mtx_dir,
     if (!(dir.exists(img_dir))) {
         dir.create(img_dir)
     }
-
+   
+    pdf(file.path(dir, paste(label, "mixscape_before.pdf", sep = "")))
+    print(((p1 / p2 + patchwork::plot_layout(guides = 'auto')) | p3 ))
+    dev.off()
     
     png(file.path(img_dir, paste(label, "mixscape_before.png", sep = "")), 
         width = 600 * 3, height = 600 * 3, res = 72 * 3)
@@ -214,7 +233,7 @@ IntegratedMixscape<- function(sg_dir, mtx_dir,
 
     #save plots.
     
-    pdf(file.path(prefix, paste(label, "mixscape_after.pdf", sep = "")))
+    pdf(file.path(dir, paste(label, "mixscape_after.pdf", sep = "")))
     print((q1 / q2 + patchwork::plot_layout(guides = 'auto') | q3))
     dev.off()
     
@@ -259,7 +278,7 @@ IntegratedMixscape<- function(sg_dir, mtx_dir,
                                    
         l <- length(unique(df5$gene))
         if(l < 12){
-            pdf(paste(prefix, "mixscape_KO_percent.pdf", sep = "/"))
+            pdf(paste(dir, "mixscape_KO_percent.pdf", sep = "/"))
             p <- ggplot(df5, aes(x = guide_number, y = value*100, fill = Var1)) +
             geom_bar(stat = "identity") +
             theme_classic()+
@@ -281,7 +300,7 @@ IntegratedMixscape<- function(sg_dir, mtx_dir,
             print(q)
             dev.off()
         }else{
-            pdf(paste(prefix, "mixscape_KO_percent.pdf", sep = "/"))
+            pdf(paste(dir, "mixscape_KO_percent.pdf", sep = "/"))
             for(i in 1:(ceiling(l/12))){
                 df6 <- subset(df5, gene %in% unique(df5$gene)[(i * 12 - 11) : (i * 12)])
                 p <- ggplot(df6, aes(x = guide_number, y = value * 100, fill = Var1)) +

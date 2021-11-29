@@ -1,6 +1,7 @@
 #' @export
 #' @import Gviz
 #' @import ensembldb
+#' @import ggplotify
 
 ciceroPlot<- function(score_dir, pval_dir, selected = NULL, species = "Hs", version = "v75", gene_annotations = NULL, 
                       p_val_cut = 0.05, score_cut = 0, prefix = "./", label = "", 
@@ -59,6 +60,15 @@ ciceroPlot<- function(score_dir, pval_dir, selected = NULL, species = "Hs", vers
     if (!dir.exists(dir)) {
         dir.create(path = dir)
     }
+    
+    img_dir <- file.path(prefix, "img")
+    if (!dir.exists(img_dir)) {
+        dir.create(path = img_dir)
+    }
+    img_dir <- file.path(img_dir, "cicero")
+    if (!dir.exists(img_dir)) {
+        dir.create(path = img_dir)
+    }
         
     if(is.character(selected)){
         if(length(selected) == 1){
@@ -91,8 +101,12 @@ ciceroPlot<- function(score_dir, pval_dir, selected = NULL, species = "Hs", vers
             if(is.null(gg)){
                 stop("Cannot find gene model close to selected region.")
             }
-            gg <- gg + labs(title = selected) + 
-                            theme(plot.title = element_text(hjust = 0.5), text = element_text(size = 12,face = "bold"))
+            gg <- gg + 
+            labs(y = "Regulatory Potential", 
+                 title = selected) +
+            theme(plot.title = element_text(hjust = 0.5), 
+                  text = element_text(size = 20, face = "bold"),
+                  axis.title.y = element_text(size = 18, angle = 90, hjust = 0.75))
             
             #save plot
             
@@ -147,21 +161,24 @@ ciceroPlot<- function(score_dir, pval_dir, selected = NULL, species = "Hs", vers
                     next
                 }
                 j <- j + 1
-                gg <- gg + labs(title = perturb) + 
+                gg <- gg + 
+                labs(y = "Regulatory Potential", 
+                     title = perturb) +
                 theme(plot.title = element_text(hjust = 0.5), 
-                      text = element_text(size = 12, face = "bold"))
+                      text = element_text(size = 20, face = "bold"),
+                      axis.title.y = element_text(size = 18, angle = 90, hjust = 0.75))
                 results[[j]] <- gg
                 names(results)[j] <- perturb
                 
                 #save plot
                 
-                perturb <- gsub(":", ".", perturb)
+                perturb <- paste(chr, start, end, sep = ".")
             
                 pdf(file = file.path(dir, paste(perturb, ".pdf", sep = "")))
                 print(gg)
                 dev.off()
         
-                png(file.path(file.path(prefix, "img/cicero"), paste(perturb, ".png", sep = "")), 
+                png(file.path(img_dir, paste(perturb, ".png", sep = "")), 
                     width = 600 * 3, height = 600 * 3, res = 72 * 3)
                 print(gg)
                 dev.off()
@@ -379,7 +396,7 @@ get_results <- function(chr, start, end, minbp, maxbp, gene_anno, track_size, ge
     grtrack <- Gviz::GeneRegionTrack(gene_model, chromosome = chr, geneSymbols = TRUE,
                                      name = "", fill = "#81D2C7",
                                      col = "#81D2C7",  fontcolor = "black",
-                                     fontcolor.group = "black", fontsize.group = 6,
+                                     fontcolor.group = "black", fontsize.group = 12,
                                      fontsize = 6, shape = gene_model_shape, 
                                      collapseTranscripts = "longest", cex.group = 1)
         
@@ -412,7 +429,7 @@ get_results <- function(chr, start, end, minbp, maxbp, gene_anno, track_size, ge
     dk <- c(colorRampPalette(colors = c("blue", "white"))(length(bk)/2),
             colorRampPalette(colors = c("white", "red"))(length(bk)/2))
     dtrack <- DataTrack(gr, type = c("heatmap"), chromosome = chr, gradient = dk, 
-                        ylim = c(-1 , 1), yTicksAt = c(-1, -0.5, 0, 0.5), name = "scMAGeCK score")
+                        ylim = c(-1 , 1), yTicksAt = c(-1, -0.5, 0, 0.5), name = "scMAGeCK score", ,fontsize = 18)
     
     #rename sub
     
@@ -447,7 +464,7 @@ get_results <- function(chr, start, end, minbp, maxbp, gene_anno, track_size, ge
                       connection_width, alpha_by_coaccess, color_names)
             }
         return(invisible(GdObject))}, name = "regulatory potential", 
-                          fontsize.group = 6, fontsize = 12, cex.title = 1.3)
+                          fontsize.group = 6, fontsize = 18, cex.title = 1.3)
         
     #in order to show all the gene names
     
@@ -455,25 +472,25 @@ get_results <- function(chr, start, end, minbp, maxbp, gene_anno, track_size, ge
     
     #get atrack
     
-    atrack <- Gviz::GenomeAxisTrack(fontsize = 6, name = "")
+    atrack <- Gviz::GenomeAxisTrack(fontsize = 12, name = "")
         
     #plot
     
     if(include_axis_track == TRUE){
-        gg <- as.ggplot(function()plotTracks(list(ctrack, dtrack, atrack, grtrack), 
-                                             title.width = 1.3, showTitle = TRUE, from = minbp, to = maxbp, 
+        gg <- as.ggplot(function()plotTracks(list(ctrack, dtrack, atrack, grtrack), margin = 10,
+                                             showTitle = F, from = minbp, to = maxbp, 
                                              chromosome = chr, sizes = track_size, 
                                              transcriptAnnotation = "symbol", background.title = "transparent",
                                              col.border.title = "transparent", lwd.border.title = "transparent",
-                                             col.axis = "black", fontsize.group = 6, col.title = "black",
+                                             col.axis = "black", col.title = "black",
                                              fontcolor.legend = "black"))
     }else{
-        gg <- as.ggplot(function()plotTracks(list(ctrack, dtrack, grtrack), 
-                                             title.width = 1.3, showTitle = TRUE, from = minbp, to = maxbp, 
+        gg <- as.ggplot(function()plotTracks(list(ctrack, dtrack, grtrack), margin = 10,
+                                             showTitle = F, from = minbp, to = maxbp, 
                                              chromosome = chr, sizes = track_size, 
                                              transcriptAnnotation = "symbol", background.title = "transparent",
                                              col.border.title = "transparent", lwd.border.title = "transparent",
-                                             col.axis = "black", fontsize.group = 6, col.title = "black",
+                                             col.axis = "black", col.title = "black",
                                              fontcolor.legend = "black"))
     }
     return(gg)
@@ -488,7 +505,7 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
                           track_size = c(1, .3, .2, .3), include_axis_track = TRUE, connection_color = "#7F7CAF", 
                           connection_color_legend = TRUE, connection_width = 2, connection_ymax = NULL, 
                           gene_model_color = "#81D2C7", alpha_by_coaccess = FALSE, 
-                          gene_model_shape = c("smallArrow", "box")){
+                          gene_model_shape = c("smallArrow", "box"), prefix = "./", label = "", html_config = FALSE){
     
     color_names = NULL
     
@@ -558,31 +575,44 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
     
     results <- list()
         
-    #get peaks
-    
-    object <- TFIDF(object)
-        
     #get selected TFs list
     
     if(is.null(selected)){
         selected <- colnames(score)[which(colnames(score) != "NegCtrl")]
     }
     
-    dir <- file.path(prefix, "cicero_results")
+    dir <- file.path(prefix, "pdf")
     if (!dir.exists(dir)) {
         dir.create(path = dir)
     }
     
+    dir <- file.path(dir, "enhancer_function")
+    if (!dir.exists(dir)) {
+        dir.create(path = dir)
+    }
+    
+    dir <- file.path(dir, "cicero")
+    if (!dir.exists(dir)) {
+        dir.create(path = dir)
+    }
+
     img_dir <- file.path(prefix, "img")
     if (!dir.exists(img_dir)) {
         dir.create(path = img_dir)
     }
+        
+    img_dir <- file.path(img_dir, "enhancer_function")
+    if (!dir.exists(img_dir)) {
+        dir.create(path = img_dir)
+    }
+        
     img_dir <- file.path(img_dir, "cicero")
     if (!dir.exists(img_dir)) {
         dir.create(path = img_dir)
     }
     
     if(is.character(selected)){
+        
         if(length(selected) == 1){
             #get DA peaks and enhancer list
                 
@@ -591,6 +621,20 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
                 stop(paste("Cannot find DA peaks pass threshold in ", selected, " FindMarkers results", sep = "'"))
             }else{
                 enhancer_list <- enhancer(da_peak, pro_anno, overlap_cut, pro_up = pro_up, pro_down = pro_down)
+                
+                #generate config character of html output
+                
+                new_da <- data.frame(Perturbations = rep(gene, nrow(da_peak)),
+                                     DApeaks = paste(da_peak$chromosome, da_peak$start, da_peak$end, sep = "."),
+                                     log2FC = da_peak$avg_log2FC,
+                                     p_val_adj = da_peak$p_val_adj)
+                new_da <- paste("<tr><td>", new_da$Perturbations, 
+                                "</td><td>", new_da$DApeaks, 
+                                "</td><td>", new_da$log2FC, 
+                                "</td><td>", new_da$p_val_adj, 
+                                "</td></tr>", sep = "")
+                all_enhancer <- paste(enhancer_list$chromosome, enhancer_list$start, enhancer_list$end, sep = ".")
+                
             }
             if(nrow(da_peak) == nrow(enhancer_list)){
                 warning("All DA peaks has overlap with promoters, using all DA peaks passed threshold as input list")
@@ -615,10 +659,13 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
             if (!dir.exists(dir1)) {
                 dir.create(path = dir1)
             }
+            
             dir2 <- file.path(img_dir, selected)
             if (!dir.exists(dir2)) {
                 dir.create(path = dir2)
             }
+            
+            cicero <- c()
             
             for(i in 1:nrow(enhancer_list)){
                 chr <- enhancer_list[i, "chromosome"]
@@ -639,9 +686,20 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
                     next
                 }
                 j <- j + 1
-                peak <- paste(chr, start, end, sep = "-")
-                gg <- gg + labs(title = paste(selected, peak, sep = ":")) + 
-                theme(plot.title = element_text(hjust = 0.5), text = element_text(size = 12, face = "bold"))
+                peak <- paste(chr, start, end, sep = ".")
+                
+                #generate enhancer directory of html
+                
+                cicero_prefix <- "img/enhancer_function/cicero"
+                cicero <- c(cicero, paste(file.path(cicero_prefix, peak), ".png", sep = ""))
+                names(cicero)[j] <- peak
+                
+                gg <- gg + 
+                labs(y = "Regulatory Potential", 
+                     title = paste(selected, peak, sep = ":")) +
+                theme(plot.title = element_text(hjust = 0.5), 
+                      text = element_text(size = 20, face = "bold"),
+                      axis.title.y = element_text(size = 18, angle = 90, hjust = 0.75))
                 results[[j]] <- gg
                 names(results)[j] <- peak
                 
@@ -656,11 +714,25 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
                 print(gg)
                 dev.off()
             }
+            
+            #generate html config
+            
+            cicero <- paste(names(cicero), cicero, collapse = "\" , \"", sep = "\" : \"")
+            cicero <- paste("\"cicero\" : {\"", cicero, "\"}", sep = "")
+            DA <- paste("", new_da, collapse = "", sep = "")
+            DA <- paste("\"DApeaks\" : {\"", DA, "\"}", sep = "")
+            
         }else{
                 
             #get results for all perturbations
                 
             k <- 0
+            results <- list()
+            DA <- c()
+            all_enhancer <- data.frame()
+            da_index <- 0
+            html_results <- data.frame()
+            
             for(TF in selected){
                 
                 #get DA peaks and enhancer list
@@ -672,6 +744,25 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
                     next
                 }else{
                     enhancer_list <- enhancer(da_peak, pro_anno, overlap_cut, pro_up = pro_up, pro_down = pro_down)
+                    
+                    #generate enhancer and DApeaks information of html
+                    
+                    all_enhancer <- rbind(all_enhancer, enhancer_list)
+                    new_da <- data.frame(Perturbations = rep(TF, nrow(da_peak)), 
+                                         DApeaks = paste(da_peak$chromosome, da_peak$start, da_peak$end, sep = "."), 
+                                         log2FC = da_peak$avg_log2FC,
+                                         p_val_adj = da_peak$p_val_adj)
+                    html_results <- rbind(html_results, new_da)
+                    new_da <- paste("<tr><td>", new_da$Perturbations, 
+                                    "</td><td>", new_da$DApeaks, 
+                                    "</td><td>", new_da$log2FC, 
+                                    "</td><td>", new_da$p_val_adj, 
+                                    "</td></tr>", sep = "")
+                    new_da <- paste(new_da, collapse = "", sep = "")
+                    DA <- c(DA, new_da)
+                    da_index <- da_index + 1
+                    names(DA)[da_index] <- TF
+                    
                 }
                 if(nrow(da_peak) == nrow(enhancer_list)){
                     warning(paste("All DA peaks has overlap with promoters in ", 
@@ -694,15 +785,17 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
                 
                 j <- 0
                 
-                TF <- gsub(":", ".", TF)
                 dir1 <- file.path(dir, TF)
                 if (!dir.exists(dir1)) {
                     dir.create(path = dir1)
                 }
+                
                 dir2 <- file.path(img_dir, TF)
                 if (!dir.exists(dir2)) {
                     dir.create(path = dir2)
                 }
+                
+                cicero <- c()
                 
                 for(i in 1:nrow(enhancer_list)){
                     chr <- enhancer_list[i, "chromosome"]
@@ -723,10 +816,20 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
                         next
                     }
                     j <- j + 1
-                    peak <- paste(chr, start, end, sep = "-")
-                    gg <- gg + labs(title = paste(TF, peak, sep = ":")) + 
-                            theme(plot.title = element_text(hjust = 0.5), 
-                                  text = element_text(size = 12, face = "bold"))
+                    peak <- paste(chr, start, end, sep = ".")
+                    
+                    #generate enhancer directory of html
+                
+                    cicero_prefix <- file.path("img/enhancer_function/cicero", TF)
+                    cicero <- c(cicero, paste(file.path(cicero_prefix, peak), ".png", sep = ""))
+                    names(cicero)[j] <- peak
+                    
+                    gg <- gg + 
+                    labs(y = "Regulatory Potential", 
+                         title = paste(TF, peak, sep = ":")) +
+                    theme(plot.title = element_text(hjust = 0.5), 
+                          text = element_text(size = 20, face = "bold"),
+                          axis.title.y = element_text(size = 18, angle = 90, hjust = 0.75))
                     sub_results[[j]] <- gg
                     names(sub_results)[j] <- peak
                     
@@ -749,8 +852,30 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
                     names(results)[k] <- TF
                 }
             }
+            
+            #generate results of html
+            
+            colnames(all_enhancer) <- c("chromosome", "start", "end")
+            all_enhancer <- paste(all_enhancer$chromosome, all_enhancer$start, all_enhancer$end, sep = ".")
+            all_da <- paste("<tr><td>", html_results$Perturbations, 
+                            "</td><td>", html_results$DApeaks, 
+                            "</td><td>", html_results$log2FC, 
+                            "</td><td>", html_results$p_val_adj, 
+                            "</td></tr>", sep = "")
+            all_da <- paste(all_da, collapse = "", sep = "")
+            DA <- c(DA, all_da)
+            names(DA)[j + 1] <- "All_Results"
+
+            cicero <- paste(names(cicero), cicero, collapse = "\" , \"", sep = "\" : \"")
+            cicero <- paste("\"cicero\" : {\"", cicero, "\"}", sep = "")
+            DA <- paste(names(DA), DA, collapse = "\" , \"", sep = "\" : \"")
+            DA <- paste("\"DApeaks\" : {\"", DA, "\"}", sep = "")
         }
-        return(results)
+        if (html_config == FALSE) {
+            return(results)
+        } else {
+            return(list(results, DA, cicero))
+        }
     }else{
         stop("Please input correct format of selected perturbations")
     }

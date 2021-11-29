@@ -19,7 +19,8 @@ ATAC_Add_meta_data <- function(sg_dir, mtx_dir, fragments, replicate = 1, cal.FR
         }
     }else{
         if(!("FRiP" %in% colnames(peak@meta.data))){
-            warning("Please make sure that there is meta data named 'FRiP' in input peak matrix while setting 'cal.FRiP = FALSE'. We will set the 'FRiP' of each cell to 1.")   
+            warning("Please make sure that there is meta data named 'FRiP' in input peak matrix while setting 'cal.FRiP = FALSE'. We will set the 'FRiP' of each cell to 1.")
+            peak$FRiP <- 1
         }
     }
     
@@ -31,14 +32,25 @@ ATAC_Add_meta_data <- function(sg_dir, mtx_dir, fragments, replicate = 1, cal.FR
 ATAC_scQC <- function(mtx_dir, prefix = "./", label = "", peak_frac = 0.01, 
                       nFeature = c(200, 500000), nCount = 1000, FRiP = 0.1, blank_NTC = FALSE){
     
-    dir <- file.path(prefix, "img")
+    dir <- file.path(prefix, "pdf")
     if (!(dir.exists(dir))) {
         dir.create(dir)
     }
     
-    dir1 <- file.path(dir, "ATAC_quality")
-    if (!(dir.exists(dir1))){
-        dir.create(dir1)
+    dir <- file.path(dir, "ATAC_quality")
+    if (!(dir.exists(dir))){
+        dir.create(dir)
+    }
+    
+    
+    img_dir <- file.path(prefix, "img")
+    if (!(dir.exists(img_dir))) {
+        dir.create(img_dir)
+    }
+    
+    img_dir <- file.path(img_dir, "ATAC_quality")
+    if (!(dir.exists(img_dir))){
+        dir.create(img_dir)
     }
     
     #read file
@@ -62,14 +74,41 @@ ATAC_scQC <- function(mtx_dir, prefix = "./", label = "", peak_frac = 0.01,
 
     #QC plot of the single cell matrix
     
-    pdf(file = file.path(prefix, paste(label, "raw_matrix_quality_vlnplot.pdf", sep = "")))
-    p1 <- VlnPlot(perturb, features = c("nFeature_peak", "nCount_peak", "FRiP"), ncol = 3, pt.size = 0.1)
-    print(p1)
+    pdf(file = file.path(dir, paste(label, "raw_matrix_quality_vlnplot.pdf", sep = "")), width = 8, height = 8)
+    p1 <- VlnPlot(perturb, features = "nFeature_peak", pt.size = 0.1) + 
+    theme(plot.title = element_text(hjust = 0.5, size = 20),
+          legend.text = element_text(size = 16),
+          legend.title = element_text(size = 20),
+          axis.text.x = element_text(size = 15),
+          axis.title.x = element_text(size = 15), 
+          axis.title.y = element_text(size = 20),
+          axis.text.y = element_text(hjust = 0.5, size = 16)) +
+    NoLegend()
+    p2 <- VlnPlot(perturb, features = "nCount_peak", pt.size = 0.1) + 
+    theme(plot.title = element_text(hjust = 0.5, size = 20),
+          legend.text = element_text(size = 16),
+          legend.title = element_text(size = 20),
+          axis.text.x = element_text(size = 15),
+          axis.title.x = element_text(size = 15), 
+          axis.title.y = element_text(size = 20),
+          axis.text.y = element_text(hjust = 0.5, size = 16)) + 
+    NoLegend()
+    p3 <- VlnPlot(perturb, features = "FRiP", pt.size = 0.1) + 
+    theme(plot.title = element_text(hjust = 0.5, size = 20),
+          legend.text = element_text(size = 16),
+          legend.title = element_text(size = 20),
+          axis.text.x = element_text(size = 15),
+          axis.title.x = element_text(size = 15), 
+          axis.title.y = element_text(size = 20),
+          axis.text.y = element_text(hjust = 0.5, size = 16)) + 
+    NoLegend()
+    p <- plot_grid(p1, p2, p3, ncol = 3, align = "h")
+    print(p)
     dev.off()
     
-    png(file.path(dir1, paste(label, "raw_matrix_quality_vlnplot.png", sep = "")), 
-        width = 500, height = 500)
-    print(p1)
+    png(file.path(img_dir, paste(label, "raw_matrix_quality_vlnplot.png", sep = "")), 
+        width = 800, height = 600)
+    print(p)
     dev.off()
 
     
@@ -91,18 +130,48 @@ ATAC_scQC <- function(mtx_dir, prefix = "./", label = "", peak_frac = 0.01,
     }
     perturb_QC <- CreateSeuratObject(counts = GetAssayData(object = perturb_QC, slot = "counts"), assay = "peak",
                                      min.cells = peak_frac * ncol(perturb_QC), project = perturb@project.name)
-    if("FRiP" %in% colnames(perturb@meta.data)){
-        perturb_QC$FRiP <- perturb$FRiP
+    
+    for(meta in colnames(perturb@meta.data)) {
+        if (!(meta %in% c("nFeature_peak", "nCount_peak"))) {
+            perturb_QC[[meta]] <- perturb[[meta]]
+        }
     }
     
-    pdf(file = file.path(prefix, paste(label, "QC_matrix_quality_vlnplot.pdf", sep = "")))
-    p2 <- VlnPlot(perturb_QC, features = c("nFeature_peak", "nCount_peak", "FRiP"), ncol = 3, pt.size = 0.1)
-    print(p2)
+    pdf(file = file.path(dir, paste(label, "QC_matrix_quality_vlnplot.pdf", sep = "")), width = 8, height = 8)
+    q1 <- VlnPlot(perturb_QC, features = "nFeature_peak", pt.size = 0.1) + 
+    theme(plot.title = element_text(hjust = 0.5, size = 20),
+          legend.text = element_text(size = 16),
+          legend.title = element_text(size = 20),
+          axis.text.x = element_text(size = 15),
+          axis.title.x = element_text(size = 15), 
+          axis.title.y = element_text(size = 20),
+          axis.text.y = element_text(hjust = 0.5, size = 16)) +
+    NoLegend()
+    q2 <- VlnPlot(perturb_QC, features = "nCount_peak", pt.size = 0.1) + 
+    theme(plot.title = element_text(hjust = 0.5, size = 20),
+          legend.text = element_text(size = 16),
+          legend.title = element_text(size = 20),
+          axis.text.x = element_text(size = 15),
+          axis.title.x = element_text(size = 15), 
+          axis.title.y = element_text(size = 20),
+          axis.text.y = element_text(hjust = 0.5, size = 16)) + 
+    NoLegend()
+    q3 <- VlnPlot(perturb_QC, features = "FRiP", pt.size = 0.1) + 
+    theme(plot.title = element_text(hjust = 0.5, size = 20),
+          legend.text = element_text(size = 16),
+          legend.title = element_text(size = 20),
+          axis.text.x = element_text(size = 15),
+          axis.title.x = element_text(size = 15), 
+          axis.title.y = element_text(size = 20),
+          axis.text.y = element_text(hjust = 0.5, size = 16)) + 
+    NoLegend()
+    q <- plot_grid(q1, q2, q3, ncol = 3, align = "h")
+    print(q)
     dev.off()
     
-    png(file.path(dir1, paste(label, "QC_matrix_quality_vlnplot.png", sep = "")), 
-        width = 500, height = 500)
-    print(p2)
+    png(file.path(img_dir, paste(label, "QC_matrix_quality_vlnplot.png", sep = "")), 
+        width = 800, height = 600)
+    print(q)
     dev.off()
     return(perturb_QC)
 }
