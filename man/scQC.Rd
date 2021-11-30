@@ -12,8 +12,8 @@ scQC(
   label = "",
   species = "Hs",
   gene_frac = 0.01,
-  nFeature_RNA = c(200, 5000),
-  nCount_RNA = 1000,
+  nFeature = c(200, 5000),
+  nCount = 1000,
   mt = 10,
   blank_NTC = FALSE
 )

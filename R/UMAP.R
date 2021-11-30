@@ -104,6 +104,8 @@ umap <- function(mtx_dir, nfeature = 2000, dims = 1:20, assays = "RNA", algorith
     return(perturb_QC)
 }
 
+#' @export
+
 ATACumap <- function(mtx_dir, min.cutoff = "q5", n = 20, assays = NULL, 
                      reduction.key = 'LSI_', reduction.name = 'lsi', algorithm = 1,
                      prefix = "./", label = "", label.cut = 20, resolution = 0.8) {

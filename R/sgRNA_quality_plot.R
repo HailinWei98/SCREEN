@@ -25,7 +25,7 @@ sgRNA_quality_plot<- function(sg_dir, mtx_dir, LABEL = "", prefix = "./"){
     #count sgRNA in each cell;count cells of each sgRNA
     
     sg_count <- plyr::count(subset(sg_lib_filtered, cell %in% colnames(mtx))$barcode)
-    colnames(sg_count) <- c("sgRNA","freq")
+    colnames(sg_count) <- c("sgRNA", "freq")
     sg_count <- sg_count[order(-sg_count$freq), ]
     sg_count$order <- seq(1, nrow(sg_count))
 
@@ -39,7 +39,7 @@ sgRNA_quality_plot<- function(sg_dir, mtx_dir, LABEL = "", prefix = "./"){
     geom_line(size = 1) + theme_classic() +
     geom_point(data = head(sg_count, 10),
                mapping = aes(x = order, y = freq, color = sgRNA), size = 5) +
-    labs(x = "sgRNA",y = "Cell Numbers",title = "Cell Numbers of sgRNA") +
+    labs(x = "sgRNA", y = "Cell Numbers", title = "Cell Numbers of sgRNA") +
     theme(plot.title = element_text(hjust = 0.5, size = 25), 
           legend.text = element_text(size = 12),
           text = element_text(hjust = 0.5, face = "bold"),

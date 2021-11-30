@@ -52,7 +52,6 @@
 #' @param connection_ymax Connection y-axis height. If NULL, chosen automatically.
 #' @param gene_model_color Color for gene annotations.
 #' @param alpha_by_coaccess Logical, should the transparency of connection lines be scaled based on co-accessibility score?
-#' @param gene_model_shape
 
 #' @import Seurat
 #' @import ggplot2
