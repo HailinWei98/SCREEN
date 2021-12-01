@@ -59,7 +59,7 @@ SCREEN(
 )
 }
 \arguments{
-\item{sg_dir}{Data frame or directory to a txt file containing 3 columns: cell, barcode, gene. If sgRNA information stored in a matrix-like format or input data frame only has sgRNA frequence of each cell, use \code{\link[SCREEN{sgRNAassign}} to assign sgRNA to each cell.}
+\item{sg_dir}{Data frame or directory to a txt file containing 3 columns: cell, barcode, gene. If sgRNA information stored in a matrix-like format or sinput data frame only has sgRNA frequence of each cell, use \code{\link[SCREEN]{sgRNAassign}} to assign sgRNA to each cell.}
 
 \item{mtx_dir}{SeuratObject or directory to rds file of SeuratObject, with cell in columns and features in rows.}
 
@@ -107,9 +107,9 @@ SCREEN(
 
 \item{cicero_p_val_cut}{P-value cutoff of \code{improved_scmageck_lr} results used for \code{ciceroPlot}. Default is 0.05.}
 
-\item{ylimit}{Limitation of y-axis of /code{DE_gene_plot} in the format c(-600, 600, 200). These numbers mean c(minimum, maximum, interval). Default is "auto", which means that this function will get \code{ylimit} automatically.}
+\item{ylimit}{Limitation of y-axis of \code{DE_gene_plot} in the format c(-600, 600, 200). These numbers mean c(minimum, maximum, interval). Default is "auto", which means that this function will get \code{ylimit} automatically.}
 
-\item{project}{Title of /code{DE_gene_plot}. Default is "perturb".}
+\item{project}{Title of \code{DE_gene_plot}. Default is "perturb".}
 
 \item{NTC}{The name of the genes served as negative controls. Default is "NTC".}
 
@@ -119,9 +119,9 @@ SCREEN(
 
 \item{selected}{Enhancer regions to visualize for perturb-enhancer or perturbations to chose for perturb-ATAC, in \code{cicero} step. By default, all enhancers or all perturbations will be chosen.}
 
-\item{gene_annotations}{Gene annotations stored in data frame format, including c("chromosome", "start", "end", "strand", "transcript") as colnames, used for /code{ciceroPlot} step. By default, gene annotations are from /code{ensembldb}.}
+\item{gene_annotations}{Gene annotations stored in data frame format, including c("chromosome", "start", "end", "strand", "transcript") as colnames, used for /code{ciceroPlot} step. By default, gene annotations are from \code{ensembldb}.}
 
-\item{pro_annotations}{Gene annotations stored in data frame format, including c("chromosome", "start", "end", "strand", "transcript") as colnames. By default, gene annotations are from /code{ensembldb}.}
+\item{pro_annotations}{Gene annotations stored in data frame format, including c("chromosome", "start", "end", "strand", "transcript") as colnames. By default, gene annotations are from \code{ensembldb}.}
 
 \item{pro_up}{The number of nucleotides upstream of the transcription start site that should be included in the promoter region, only used for perturb-ATAC data. Default is 3000.}
 
@@ -129,17 +129,17 @@ SCREEN(
 
 \item{overlap_cut}{Maximum overlap nucleotides between peaks and promoters, only used for perturb-ATAC data. Default is 0.}
 
-\item{p_adj_cut}{Parameter only used for finding DA peaks. Maximum adjust p_value calculated by \code{\link[Seurat{FindMarkers}}. Default is 0.05.}
+\item{p_adj_cut}{Parameter only used for finding DA peaks. Maximum adjust p_value calculated by \code{\link[Seurat]{FindMarkers}}. Default is 0.05.}
 
-\item{logFC_cut}{Parameter only used for finding DA peaks. Minimum log fold change calculated by \code{\link[Seurat{FindMarkers}}. Default is 1.}
+\item{logFC_cut}{Parameter only used for finding DA peaks. Minimum log fold change calculated by \code{\link[Seurat]{FindMarkers}}. Default is 1.}
 
 \item{min.pct}{Parameter only used for finding DA peaks. Only test genes that are detected in a minimum fraction of min.pct cells in either of the NTC or perturbations. Meant to speed up the function by not testing genes that are very infrequently expressed. Default is 0.2.}
 
-\item{upstream}{The number of nucleotides upstream of the start site of selected region in /code{ciceroPlot} step. Default is 2000000.}
+\item{upstream}{The number of nucleotides upstream of the start site of selected region in \code{ciceroPlot} step. Default is 2000000.}
 
-\item{downstream}{The number of nucleotides downstream of the start site of selected region in /code{ciceroPlot} step. Default is 2000000.}
+\item{downstream}{The number of nucleotides downstream of the start site of selected region in \code{ciceroPlot} step. Default is 2000000.}
 
-\item{test.use}{Parameter only used for finding DA peaks. Default is "wilcox".For more details, see \code{\link[Seurat{FindMarkers}}.}
+\item{test.use}{Parameter only used for finding DA peaks. Default is "wilcox".For more details, see \code{\link[Seurat]{FindMarkers}}.}
 
 \item{track_size}{Size of each axis in /code{ciceroPlot} result. Default is c(1,.3,.2,.3). If \code{include_axis_track=FALSE}, track_size should be a vector with 3 elements.}
 

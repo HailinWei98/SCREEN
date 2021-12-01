@@ -666,6 +666,7 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
             }
             
             cicero <- c()
+            cicero_prefix <- file.path("img/enhancer_function/cicero", selected)
             
             for(i in 1:nrow(enhancer_list)){
                 chr <- enhancer_list[i, "chromosome"]
@@ -690,7 +691,6 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
                 
                 #generate enhancer directory of html
                 
-                cicero_prefix <- "img/enhancer_function/cicero"
                 cicero <- c(cicero, paste(file.path(cicero_prefix, peak), ".png", sep = ""))
                 names(cicero)[j] <- peak
                 
@@ -718,6 +718,7 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
             #generate html config
             
             cicero <- paste(names(cicero), cicero, collapse = "\" , \"", sep = "\" : \"")
+            cicero <- paste("\"", selected, "\" : {\"", cicero, "\"}", sep = "")
             cicero <- paste("\"cicero\" : {\"", cicero, "\"}", sep = "")
             DA <- paste("", new_da, collapse = "", sep = "")
             DA <- paste("\"DApeaks\" : {\"", DA, "\"}", sep = "")
