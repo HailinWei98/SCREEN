@@ -55,20 +55,23 @@ Add_meta_data <- function(sg_dir, mtx_dir, cal.mt = TRUE, species = "Hs", replic
 
     #Add replicate information to Seurat object
     
-    if(replicate != 1){
-        if(is.character(replicate)){
-            replicate <- read.table(replicate, header = F)
-            replicate <- as.vector(replicate[, 1])
-        }
-        if(is.vector(replicate) == FALSE){
-            stop("Replicate information must be a vector.")
-        }else{
-            if(is.null(names(replicate))){
-                names(replicate) <- colnames(mtx)
+    if (!("replicate" %in% colnames(mtx@meta.data))) {
+        if(replicate != 1){
+            if(is.character(replicate)){
+                replicate <- read.table(replicate, header = F)
+                replicate <- as.vector(replicate[, 1])
+            }
+            if(is.vector(replicate) == FALSE){
+                stop("Replicate information must be a vector.")
+            } else {
+                if(is.null(names(replicate))){
+                    names(replicate) <- colnames(mtx)
+                }
             }
         }
+        mtx <- AddMetaData(mtx, as.factor(replicate), col.name = "replicate")
     }
-    mtx <- AddMetaData(mtx, as.factor(replicate), col.name = "replicate")
+
     
     #calculate percent.mt
     
@@ -77,6 +80,11 @@ Add_meta_data <- function(sg_dir, mtx_dir, cal.mt = TRUE, species = "Hs", replic
             mtx[["percent.mt"]] <- PercentageFeatureSet(mtx, pattern = "^MT-")
         }else{
             mtx[["percent.mt"]] <- PercentageFeatureSet(mtx, pattern = "^mt-")
+        }
+    } else {
+        if (!("percent.mt" %in% colnames(mtx@meta.data))) {
+            message("No 'percent.mt' in meta.data and 'cal.mt == FALSE', set all 'percnet.mt' to 0")
+            mtx[["percent.mt"]] <- 0
         }
     }
     

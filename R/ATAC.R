@@ -29,10 +29,10 @@ ATAC_Add_meta_data <- function(sg_dir, mtx_dir, fragments, replicate = 1, cal.FR
 
 #' @export
 
-ATAC_scQC <- function(mtx_dir, prefix = "./", label = "", peak_frac = 0.01, 
+ATAC_scQC <- function(mtx_dir, prefix = ".", label = "", peak_frac = 0.01, 
                       nFeature = c(200, 500000), nCount = 1000, FRiP = 0.1, blank_NTC = FALSE){
     
-    dir <- file.path(prefix, "pdf")
+    dir <- file.path(prefix, "results")
     if (!(dir.exists(dir))) {
         dir.create(dir)
     }
@@ -42,15 +42,14 @@ ATAC_scQC <- function(mtx_dir, prefix = "./", label = "", peak_frac = 0.01,
         dir.create(dir)
     }
     
-    
-    img_dir <- file.path(prefix, "img")
+    img_dir <- file.path(dir, "img")
     if (!(dir.exists(img_dir))) {
         dir.create(img_dir)
     }
     
-    img_dir <- file.path(img_dir, "ATAC_quality")
-    if (!(dir.exists(img_dir))){
-        dir.create(img_dir)
+    dir <- file.path(dir, "pdf")
+    if (!(dir.exists(dir))){
+        dir.create(dir)
     }
     
     #read file

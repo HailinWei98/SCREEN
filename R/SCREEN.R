@@ -55,7 +55,7 @@
 
 #' @import Seurat
 #' @import ggplot2
-#' @import dplyr
+#' @import plyr
 #' @import EnsDb.Hsapiens.v75
 #' @import EnsDb.Hsapiens.v79
 #' @import EnsDb.Hsapiens.v86
@@ -67,6 +67,7 @@
 #' @import clusterProfiler
 #' @import org.Hs.eg.db
 #' @import org.Mm.eg.db
+#' @import cowplot
 #' @export
 
 SCREEN <- function(sg_dir, mtx_dir, fragments, cal.FRiP = TRUE, species = "Hs", version = "v75", 

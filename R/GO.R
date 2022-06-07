@@ -2,6 +2,7 @@
 #' @import org.Hs.eg.db
 #' @import org.Mm.eg.db
 #' @import ggplot2
+#' @import stringr
 #' @export
 
 GOenrichment <- function(score_dir, pval_dir, p_val_cut = 0.05, score_cut = 0.5, DE_gene_to_use = "all",
@@ -56,6 +57,16 @@ GOenrichment <- function(score_dir, pval_dir, p_val_cut = 0.05, score_cut = 0.5,
         dir.create(img_dir)
     }
 
+    #convert gene name
+        
+    if (gene_type == "Symbol") {
+        genes <- bitr(rownames(score), "SYMBOL", "ENTREZID", database)
+    } else if (gene_type == "Ensembl") {
+        genes <- bitr(rownames(score), "ENSEMBL", "ENTREZID", database)
+    } else {
+        stop("gene_type must be one of c('Symbol', 'Ensembl')")
+    }
+    
     for(gene in colnames(score)){
         
         #get score and p_val for each perturbation
@@ -73,27 +84,26 @@ GOenrichment <- function(score_dir, pval_dir, p_val_cut = 0.05, score_cut = 0.5,
         
         if(DE_gene_to_use == "all") {
             de <- DE_genes
+            title <- "All Potential Targets of"
         } else if(DE_gene_to_use == "up"){
             de <- up_genes
+            title <- "Potential Up-regulated Targets of"
         } else if(DE_gene_to_use == "down"){
             de <- down_genes
+            title <- "Potential Down-regulated Targets of"
         } else{
             stop("DE_gene_to_use must be one of c('all', 'up', 'down')")
         }
         
-        #convert gene name
+        de_genes <- subset(genes, genes[ ,1] %in% de)
         
-        if (gene_type == "Symbol") {
-            de_genes <- bitr(de, "SYMBOL", "ENTREZID", database)
-        } else if (gene_type == "Ensembl") {
-            de_genes <- bitr(de, "ENSEMBL", "ENTREZID", database)
-        } else {
-            stop("gene_type must be one of c('Symbol', 'Ensembl')")
+        if (nrow (de_genes) == 0) {
+            next
         }
             
         #GO enrichment
             
-        MF_ego <- enrichGO(gene = de_genes[, 2],
+        MF_ego <- enrichGO(gene = unique(de_genes[, 2]),
                            OrgDb = database,
                            ont = "MF",
                            keyType = "ENTREZID",
@@ -102,7 +112,7 @@ GOenrichment <- function(score_dir, pval_dir, p_val_cut = 0.05, score_cut = 0.5,
                            pvalueCutoff = 0.05,
                            qvalueCutoff = 0.05,
                            readable = TRUE)
-        BP_ego <- enrichGO(gene = de_genes[, 2],
+        BP_ego <- enrichGO(gene = unique(de_genes[, 2]),
                            OrgDb = database,
                            ont = "BP",
                            keyType = "ENTREZID",
@@ -111,7 +121,7 @@ GOenrichment <- function(score_dir, pval_dir, p_val_cut = 0.05, score_cut = 0.5,
                            pvalueCutoff = 0.05,
                            qvalueCutoff = 0.05,
                            readable = TRUE)
-        CC_ego <- enrichGO(gene = de_genes[, 2],
+        CC_ego <- enrichGO(gene = unique(de_genes[, 2]),
                            OrgDb = database,
                            ont = "CC",
                            keyType = "ENTREZID",
@@ -132,9 +142,9 @@ GOenrichment <- function(score_dir, pval_dir, p_val_cut = 0.05, score_cut = 0.5,
             nrow(BP_results) > 0 & 
             nrow(CC_results) > 0) {
             
-            MF_results <- na.omit(MF_results[1:showCategory, ])
-            BP_results <- na.omit(BP_results[1:showCategory, ])
-            CC_results <- na.omit(CC_results[1:showCategory, ])
+            MF_results <- na.omit(MF_results[1 : showCategory, ])
+            BP_results <- na.omit(BP_results[1 : showCategory, ])
+            CC_results <- na.omit(CC_results[1 : showCategory, ])
             all_results <- as.data.frame(rbind(MF_results, CC_results, BP_results))
             colnames(all_results) <- colnames(BP_results)
             all_results$ONTOLOGY <- factor(c(rep("MF", nrow(MF_results)), 
@@ -147,8 +157,8 @@ GOenrichment <- function(score_dir, pval_dir, p_val_cut = 0.05, score_cut = 0.5,
                    nrow(BP_results) > 0 & 
                    nrow(CC_results) == 0) {
             
-            MF_results <- na.omit(MF_results[1:showCategory, ])
-            BP_results <- na.omit(BP_results[1:showCategory, ])
+            MF_results <- na.omit(MF_results[1 : showCategory, ])
+            BP_results <- na.omit(BP_results[1 : showCategory, ])
             all_results <- as.data.frame(rbind(MF_results, BP_results))
             colnames(all_results) <- colnames(BP_results)
                 
@@ -161,8 +171,8 @@ GOenrichment <- function(score_dir, pval_dir, p_val_cut = 0.05, score_cut = 0.5,
                   nrow(BP_results) == 0 & 
                   nrow(CC_results) > 0){
             
-            MF_results <- na.omit(MF_results[1:showCategory, ])
-            CC_results <- na.omit(CC_results[1:showCategory, ])
+            MF_results <- na.omit(MF_results[1 : showCategory, ])
+            CC_results <- na.omit(CC_results[1 : showCategory, ])
             all_results <- as.data.frame(rbind(MF_results, CC_results))
             colnames(all_results) <- colnames(CC_results)
                 
@@ -175,8 +185,8 @@ GOenrichment <- function(score_dir, pval_dir, p_val_cut = 0.05, score_cut = 0.5,
                   nrow(BP_results) > 0 & 
                   nrow(CC_results) > 0){
             
-            BP_results <- na.omit(BP_results[1:showCategory, ])
-            CC_results <- na.omit(CC_results[1:showCategory, ])
+            BP_results <- na.omit(BP_results[1 : showCategory, ])
+            CC_results <- na.omit(CC_results[1 : showCategory, ])
             all_results <- as.data.frame(rbind(CC_results, BP_results))
             colnames(all_results) <- colnames(BP_results)
                 
@@ -189,39 +199,55 @@ GOenrichment <- function(score_dir, pval_dir, p_val_cut = 0.05, score_cut = 0.5,
                   nrow(BP_results) == 0 & 
                   nrow(CC_results) > 0){
             
-            all_results <- na.omit(CC_results[1:showCategory, ])
+            all_results <- na.omit(CC_results[1 : showCategory, ])
+            all_results$ONTOLOGY <- factor(rep("CC", nrow(all_results)), 
+                                           levels = "CC", ordered = T)
             final_color <- "#FD8D62"
             
         } else if(nrow(MF_results) == 0 & 
                   nrow(BP_results) > 0 & 
                   nrow(CC_results) == 0){
             
-            all_results <- na.omit(BP_results[1:showCategory, ])
+            all_results <- na.omit(BP_results[1 : showCategory, ])
+            all_results$ONTOLOGY <- factor(rep("BP", nrow(all_results)), 
+                                           levels = "BP", ordered = T)
             final_color <- "#8DA1CB"
             
         } else if(nrow(MF_results) > 0 & 
                   nrow(BP_results) == 0 & 
                   nrow(CC_results) == 0){
             
-            all_results <- na.omit(MF_results[1:showCategory, ])
+            all_results <- na.omit(MF_results[1 : showCategory, ])
+            all_results$ONTOLOGY <- factor(rep("MF", nrow(all_results)), 
+                                           levels = "MF", ordered = T)
             final_color <- "#66C3A5"
             
-        } 
-            
+        } else if(nrow(MF_results) == 0 & 
+                  nrow(BP_results) == 0 & 
+                  nrow(CC_results) == 0) {
+            next
+        }
+           
+        all_results$Description <- stringr::str_wrap(all_results$Description, width = 150)
+        
         #plot
         
-        g1 <- ggplot(all_results) + geom_bar(aes(x = Description, y = Count, fill = ONTOLOGY), stat = 'identity') +
-        labs(x = "GO Terms",y = "Gene Numbers",title = "GO Enrichment Results", fill = "Ontology") + 
-        coord_flip() + scale_x_discrete(limits = all_results$Description) + theme_bw() +
-        theme(panel.grid = element_blank()) + scale_fill_manual(values = final_color) +
-        theme(plot.title = element_text(hjust = 0.5, size = 25), 
-              axis.text.y = element_text(size = 12),
-              axis.text.x = element_text(size = 12), 
-              axis.title.y = element_text(size = 20),
-              axis.title.x = element_text(size = 20),
-              legend.title = element_text(size = 18),
-              legend.text = element_text(size = 12),
-              text = element_text(hjust = 0.5, face = "bold"))
+        g1 <- ggplot(all_results) + 
+            geom_bar(aes(x = Description, y = Count, fill = ONTOLOGY), stat = 'identity') +
+            labs(x = "GO Terms", y = "Gene Numbers", title = paste(title, gene, sep = " "), fill = "Ontology") + 
+            coord_flip() + 
+            scale_x_discrete(limits = all_results$Description) + 
+            theme_bw() +
+            theme(panel.grid = element_blank()) + 
+            scale_fill_manual(values = final_color) +
+            theme(plot.title = element_text(hjust = 0.5, size = 25), 
+                  axis.text.y = element_text(size = 12),
+                  axis.text.x = element_text(size = 12), 
+                  axis.title.y = element_text(size = 20),
+                  axis.title.x = element_text(size = 20),
+                  legend.title = element_text(size = 18),
+                  legend.text = element_text(size = 12),
+                  text = element_text(hjust = 0.5, face = "bold"))
         
         #save results and return
         
@@ -229,7 +255,7 @@ GOenrichment <- function(score_dir, pval_dir, p_val_cut = 0.05, score_cut = 0.5,
         results[[j]] <- g1
         names(results)[j] <- gene
         
-        pdf(file = file.path(dir, paste(gene, ".pdf", sep = "")), width = 12, height = 6)
+        pdf(file = file.path(dir, paste(gene, ".pdf", sep = "")), width = 16, height = 8)
         print(g1)
         dev.off()
         

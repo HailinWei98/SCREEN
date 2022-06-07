@@ -78,6 +78,8 @@ scQC<- function(mtx_dir, prefix = "./", label = "", species = "Hs", gene_frac = 
         }
     }
     
+    perturb_QC@active.ident <- as.factor(perturb$orig.ident)
+    
     #QC plot of the single cell matrix
     
     p1 <- VlnPlot(perturb, features = "nFeature_RNA", pt.size = 0.1) + 

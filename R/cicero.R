@@ -9,7 +9,7 @@ ciceroPlot<- function(score_dir, pval_dir, selected = NULL, species = "Hs", vers
                       track_size = c(1, .3, .2, .3), include_axis_track = TRUE, connection_color = "#7F7CAF",
                       connection_color_legend = TRUE, connection_width = 2, connection_ymax = NULL, 
                       gene_model_color = "#81D2C7", alpha_by_coaccess = FALSE, 
-                      gene_model_shape = c("smallArrow", "box")){
+                      gene_model_shape = c("smallArrow", "box"), html_config = FALSE){
     
     color_names = NULL
     
@@ -56,15 +56,31 @@ ciceroPlot<- function(score_dir, pval_dir, selected = NULL, species = "Hs", vers
         selected <- selected[grep("^chr", selected)]
     }
         
-    dir <- file.path(prefix, "cicero_results")
+    dir <- file.path(prefix, "pdf")
     if (!dir.exists(dir)) {
         dir.create(path = dir)
     }
     
+    dir <- file.path(dir, "enhancer_function")
+    if (!dir.exists(dir)) {
+        dir.create(path = dir)
+    }
+    
+    dir <- file.path(dir, "cicero")
+    if (!dir.exists(dir)) {
+        dir.create(path = dir)
+    }
+
     img_dir <- file.path(prefix, "img")
     if (!dir.exists(img_dir)) {
         dir.create(path = img_dir)
     }
+        
+    img_dir <- file.path(img_dir, "enhancer_function")
+    if (!dir.exists(img_dir)) {
+        dir.create(path = img_dir)
+    }
+        
     img_dir <- file.path(img_dir, "cicero")
     if (!dir.exists(img_dir)) {
         dir.create(path = img_dir)
@@ -83,7 +99,7 @@ ciceroPlot<- function(score_dir, pval_dir, selected = NULL, species = "Hs", vers
             }
             #get information from selected enhancer
     
-            all <- unlist(strsplit(selected, "[.|:|-]"))
+            all <- unlist(strsplit(selected, "[.|:|-|_]"))
             chr <- all[1]
             start <- as.numeric(all[2])
             end <- as.numeric(all[3])
@@ -101,6 +117,9 @@ ciceroPlot<- function(score_dir, pval_dir, selected = NULL, species = "Hs", vers
             if(is.null(gg)){
                 stop("Cannot find gene model close to selected region.")
             }
+            
+            selected <- paste(chr, start, end, sep = "_")
+            
             gg <- gg + 
             labs(y = "Regulatory Potential", 
                  title = selected) +
@@ -110,24 +129,34 @@ ciceroPlot<- function(score_dir, pval_dir, selected = NULL, species = "Hs", vers
             
             #save plot
             
-            selected <- gsub(":", ".", selected)
-            
             pdf(file = file.path(dir, paste(selected, ".pdf", sep = "")))
             print(gg)
             dev.off()
         
-            png(file.path(file.path(prefix, "img/cicero"), paste(selected, ".png", sep = "")), 
+            png(file.path(img_dir, paste(selected, ".png", sep = "")), 
                 width = 600 * 3, height = 600 * 3, res = 72 * 3)
             print(gg)
             dev.off()
             
-            return(gg)
+            #generate html config
+            
+            cicero <- paste(selected, file.path("img/enhancer_function/cicero", paste(selected, ".png", sep = "")), 
+                            sep = "\" : \"")
+            cicero <- paste("\"cicero\" : {\"", cicero, "\"}", sep = "")
+            
+            if (html_config == TRUE) {
+              return(list(gg, cicero))  
+            } else {
+              return(gg)  
+            }
+            
         }else{
                 
             #get results for all perturbations
-                
-            j <- 0
+            
             results <- list()
+            cicero <- c()
+            j <- 0
             for(perturb in selected){
                 
                 #get score and p-value of selected enhancer
@@ -142,7 +171,7 @@ ciceroPlot<- function(score_dir, pval_dir, selected = NULL, species = "Hs", vers
                 
                 #get information from selected enhancer
                 
-                all <- unlist(strsplit(perturb, "[.|:|-]"))
+                all <- unlist(strsplit(perturb, "[.|:|-|_]"))
                 chr <- all[1]
                 start <- as.numeric(all[2])
                 end <- as.numeric(all[3])
@@ -161,6 +190,9 @@ ciceroPlot<- function(score_dir, pval_dir, selected = NULL, species = "Hs", vers
                     next
                 }
                 j <- j + 1
+                
+                perturb <- paste(chr, start, end, sep = "_")
+                
                 gg <- gg + 
                 labs(y = "Regulatory Potential", 
                      title = perturb) +
@@ -171,8 +203,6 @@ ciceroPlot<- function(score_dir, pval_dir, selected = NULL, species = "Hs", vers
                 names(results)[j] <- perturb
                 
                 #save plot
-                
-                perturb <- paste(chr, start, end, sep = ".")
             
                 pdf(file = file.path(dir, paste(perturb, ".pdf", sep = "")))
                 print(gg)
@@ -182,8 +212,21 @@ ciceroPlot<- function(score_dir, pval_dir, selected = NULL, species = "Hs", vers
                     width = 600 * 3, height = 600 * 3, res = 72 * 3)
                 print(gg)
                 dev.off()
+                
+                #get html config
+                cicero <- c(cicero, file.path("img/enhancer_function/cicero", paste(perturb, ".png", sep = "")))
+                names(cicero)[j] <- perturb
+
+                
             }
-            return(results)
+            
+            cicero <- paste(names(cicero), cicero, collapse = "\" , \"", sep = "\" : \"")
+            cicero <- paste("\"cicero\" : {\"", cicero, "\"}", sep = "")
+            if (html_config == TRUE) {
+                return(list(results, cicero))
+            } else {
+                return(results)
+            }
         }
     }else{
         stop("Please input correct format of selected perturbations")
@@ -426,8 +469,8 @@ get_results <- function(chr, start, end, minbp, maxbp, gene_anno, track_size, ge
     
     gr <- make_peak_track(sub)
     bk <- c(seq(-1, -0.1, by = 0.01), seq(0, 1, by = 0.01))
-    dk <- c(colorRampPalette(colors = c("blue", "white"))(length(bk)/2),
-            colorRampPalette(colors = c("white", "red"))(length(bk)/2))
+    dk <- c(colorRampPalette(colors = c("#4DBBD5FF", "white"))(length(bk)/2),
+            colorRampPalette(colors = c("white", "#E64B35FF"))(length(bk)/2))
     dtrack <- DataTrack(gr, type = c("heatmap"), chromosome = chr, gradient = dk, 
                         ylim = c(-1 , 1), yTicksAt = c(-1, -0.5, 0, 0.5), name = "scMAGeCK score", ,fontsize = 18)
     
@@ -625,7 +668,7 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
                 #generate config character of html output
                 
                 new_da <- data.frame(Perturbations = rep(gene, nrow(da_peak)),
-                                     DApeaks = paste(da_peak$chromosome, da_peak$start, da_peak$end, sep = "."),
+                                     DApeaks = paste(da_peak$chromosome, da_peak$start, da_peak$end, sep = "_"),
                                      log2FC = da_peak$avg_log2FC,
                                      p_val_adj = da_peak$p_val_adj)
                 new_da <- paste("<tr><td>", new_da$Perturbations, 
@@ -633,7 +676,7 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
                                 "</td><td>", new_da$log2FC, 
                                 "</td><td>", new_da$p_val_adj, 
                                 "</td></tr>", sep = "")
-                all_enhancer <- paste(enhancer_list$chromosome, enhancer_list$start, enhancer_list$end, sep = ".")
+                all_enhancer <- paste(enhancer_list$chromosome, enhancer_list$start, enhancer_list$end, sep = "_")
                 
             }
             if(nrow(da_peak) == nrow(enhancer_list)){
@@ -654,7 +697,6 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
                 
             j <- 0
             
-            selected <- gsub(":", ".", selected)
             dir1 <- file.path(dir, selected)
             if (!dir.exists(dir1)) {
                 dir.create(path = dir1)
@@ -687,7 +729,8 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
                     next
                 }
                 j <- j + 1
-                peak <- paste(chr, start, end, sep = ".")
+                
+                peak <- paste(chr, start, end, sep = "_")
                 
                 #generate enhancer directory of html
                 
@@ -723,16 +766,16 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
             DA <- paste("", new_da, collapse = "", sep = "")
             DA <- paste("\"DApeaks\" : {\"", DA, "\"}", sep = "")
             
-        }else{
+        } else {
                 
             #get results for all perturbations
                 
             k <- 0
             results <- list()
             DA <- c()
-            all_enhancer <- data.frame()
             da_index <- 0
             html_results <- data.frame()
+            all_cicero <- c()
             
             for(TF in selected){
                 
@@ -743,23 +786,23 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
                     warning(paste("Cannot find DA peaks pass threshold in ", 
                                   TF, " FindMarkers results", sep = "'"))
                     next
-                }else{
+                } else {
                     enhancer_list <- enhancer(da_peak, pro_anno, overlap_cut, pro_up = pro_up, pro_down = pro_down)
                     
                     #generate enhancer and DApeaks information of html
                     
-                    all_enhancer <- rbind(all_enhancer, enhancer_list)
                     new_da <- data.frame(Perturbations = rep(TF, nrow(da_peak)), 
                                          DApeaks = paste(da_peak$chromosome, da_peak$start, da_peak$end, sep = "."), 
                                          log2FC = da_peak$avg_log2FC,
                                          p_val_adj = da_peak$p_val_adj)
                     html_results <- rbind(html_results, new_da)
+                    names(html_results) <- c("Perturbations", "DApeaks", "log2FC", "p_val_adj")
                     new_da <- paste("<tr><td>", new_da$Perturbations, 
                                     "</td><td>", new_da$DApeaks, 
                                     "</td><td>", new_da$log2FC, 
                                     "</td><td>", new_da$p_val_adj, 
                                     "</td></tr>", sep = "")
-                    new_da <- paste(new_da, collapse = "", sep = "")
+                    new_da <- paste("", new_da, collapse = "", sep = "")
                     DA <- c(DA, new_da)
                     da_index <- da_index + 1
                     names(DA)[da_index] <- TF
@@ -786,16 +829,6 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
                 
                 j <- 0
                 
-                dir1 <- file.path(dir, TF)
-                if (!dir.exists(dir1)) {
-                    dir.create(path = dir1)
-                }
-                
-                dir2 <- file.path(img_dir, TF)
-                if (!dir.exists(dir2)) {
-                    dir.create(path = dir2)
-                }
-                
                 cicero <- c()
                 
                 for(i in 1:nrow(enhancer_list)){
@@ -817,9 +850,20 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
                         next
                     }
                     j <- j + 1
-                    peak <- paste(chr, start, end, sep = ".")
+                    
+                    peak <- paste(chr, start, end, sep = "_")
                     
                     #generate enhancer directory of html
+                    
+                    dir1 <- file.path(dir, TF)
+                    if (!dir.exists(dir1)) {
+                        dir.create(path = dir1)
+                    }
+
+                    dir2 <- file.path(img_dir, TF)
+                    if (!dir.exists(dir2)) {
+                        dir.create(path = dir2)
+                    }
                 
                     cicero_prefix <- file.path("img/enhancer_function/cicero", TF)
                     cicero <- c(cicero, paste(file.path(cicero_prefix, peak), ".png", sep = ""))
@@ -847,6 +891,13 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
                     dev.off()
                     
                 }
+                if (length(cicero) != 0) {
+                    cicero <- paste(names(cicero), cicero, collapse = "\" , \"", sep = "\" : \"")
+                    cicero <- paste("\"", TF, "\" : {\"", cicero, "\"}", sep = "")
+                    all_cicero <- c(all_cicero, cicero)
+                }
+
+                
                 if(length(sub_results) != 0){
                     k <- k + 1
                     results[[k]] <- sub_results
@@ -856,26 +907,28 @@ ATACciceroPlot<- function(object, score_dir, pval_dir, selected =  NULL, species
             
             #generate results of html
             
-            colnames(all_enhancer) <- c("chromosome", "start", "end")
-            all_enhancer <- paste(all_enhancer$chromosome, all_enhancer$start, all_enhancer$end, sep = ".")
-            all_da <- paste("<tr><td>", html_results$Perturbations, 
-                            "</td><td>", html_results$DApeaks, 
-                            "</td><td>", html_results$log2FC, 
-                            "</td><td>", html_results$p_val_adj, 
-                            "</td></tr>", sep = "")
-            all_da <- paste(all_da, collapse = "", sep = "")
-            DA <- c(DA, all_da)
-            names(DA)[j + 1] <- "All_Results"
+            if (nrow(html_results) != 0) {
+                all_da <- paste("<tr><td>", html_results$Perturbations, 
+                                "</td><td>", html_results$DApeaks, 
+                                "</td><td>", html_results$log2FC, 
+                                "</td><td>", html_results$p_val_adj, 
+                                "</td></tr>", sep = "")
+                all_da <- paste(all_da, collapse = "", sep = "")
+                DA <- c(all_da, DA)
+                names(DA)[1] <- "All_Results"
+            } else {
+                DA <- paste("\"All_Results\" : ", "\"\"", sep = "")
+            }
 
-            cicero <- paste(names(cicero), cicero, collapse = "\" , \"", sep = "\" : \"")
-            cicero <- paste("\"cicero\" : {\"", cicero, "\"}", sep = "")
             DA <- paste(names(DA), DA, collapse = "\" , \"", sep = "\" : \"")
             DA <- paste("\"DApeaks\" : {\"", DA, "\"}", sep = "")
+            all_cicero <- paste("", all_cicero, collapse = ", ", sep = "")
+            all_cicero <- paste("\"cicero\" : {", all_cicero, "}", sep = "")
         }
         if (html_config == FALSE) {
             return(results)
         } else {
-            return(list(results, DA, cicero))
+            return(list(results, DA, all_cicero))
         }
     }else{
         stop("Please input correct format of selected perturbations")

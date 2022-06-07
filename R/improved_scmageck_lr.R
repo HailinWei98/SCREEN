@@ -18,7 +18,13 @@ improved_scmageck_lr <- function(BARCODE, RDS, NEGCTRL, SELECT_GENE = NULL, LABE
 
     # read cell assignment and libray file ####
     
-    bc_dox = read.table(BARCODE, header = TRUE, as.is = TRUE)
+    if (is.character(BARCODE)) {
+        bc_dox = read.table(BARCODE, header = TRUE, as.is = TRUE)
+    } else {
+        bc_dox = BARCODE
+    }
+    
+    
 
     if (sum(colnames(bc_dox) %in% c("cell", "barcode", "gene")) != 3) {
         stop("cell, barcode, or gene column names not found in barcode file.")

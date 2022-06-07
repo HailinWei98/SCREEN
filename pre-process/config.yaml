@@ -1,0 +1,59 @@
+#generate sgRNA genome
+sgRNAgenomeGenerate: 
+
+#file path to save sgRNA genome
+sgRNADir: 
+
+#1 means sgRNA sequence and mRNA are in the same fastq file; 2 means sgRNA sequence and mRNA are in distinct fastq files.
+fileNum: 1
+
+#file path to save the index file or file path of the existing index.
+indexDir:
+
+#generate index or not
+skipIndex: FALSE
+
+#threads to run
+t: 1
+
+#file path of reference gtf file.
+gtf:
+
+#file path of reference fatsa file.
+fasta: 
+
+#cell barcode start base
+CBstart: 1
+
+#cell barcode length
+CBlen: 16
+
+#UMI start base
+UMIstart: 17
+
+#UMI length
+UMIlen: 10
+
+#input fastq file
+i: 
+
+#output file path of alignment results
+o: 
+
+#if input files in .gz format
+gz: FALSE
+
+#transform sra file to fastq file.If false, make sure that the input file must be fastq format
+sraTOfastq: FALSE
+
+#Input data is scATAC-seq or scRNA-seq
+type: RNA
+
+#sequence tags in the output SAM files.Only used for scATAC-seq data
+s: 10
+
+#chromosome with "chr" begining or not
+chrBegin: Yes
+
+reginSep: 
+

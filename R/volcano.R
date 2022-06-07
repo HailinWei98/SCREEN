@@ -54,11 +54,9 @@ volcano <- function(score_dir, pval_dir, p_val_cut = 0.05, score_cut = 0.5,
         dir.create(path = img_dir)
     }
     
-    score_max <- ceiling(max(abs(score)))
-    
     #prepare color for plot
     
-    diff <- c("#00BFC4","grey","#F8766D")
+    diff <- c("#4DBBD5FF","grey","#E64B35FF")
     names(diff) <- c("down", "non", "up")
 
     #plot for each perturbation
@@ -80,14 +78,21 @@ volcano <- function(score_dir, pval_dir, p_val_cut = 0.05, score_cut = 0.5,
         top_gene<- unique(c(rownames(up_gene), rownames(down_gene)))
         scmageck$lab <- ""
         scmageck[top_gene, "lab"] <- top_gene
+        score_max <- max(abs(scmageck$score))
         
         #plot
         
-        p1 <- ggplot(data = scmageck, mapping = aes(x = score, y = -log10(p_val), colour = diff, label = lab)) + 
-        geom_point(size = 1) + 
-        theme_classic() + 
-        labs(title = paste(i, "Potential Target Genes", sep = " ")) + 
-        theme(plot.title = element_text(hjust = 0.5, size = 25), 
+        if(stringr::str_starts(i, pattern = "chr")) {
+            title = paste(i, "Potential Targets", sep = "\n")
+        } else {
+            title = paste(i, "Potential Targets", sep = " ")
+        }
+        p1 <- ggplot(data = scmageck, 
+                     mapping = aes(x = score, y = -log10(p_val + 10e-6), colour = diff, label = lab)) + 
+        geom_point(size = 2) + 
+        theme_test() + 
+        labs(title = title) + 
+        theme(plot.title = element_text(hjust = 0.5, size = 23), 
               text = element_text(hjust = 0.5, face = "bold"),
               legend.text = element_text(size = 16),
               legend.title = element_text(size = 20),
@@ -98,9 +103,11 @@ volcano <- function(score_dir, pval_dir, p_val_cut = 0.05, score_cut = 0.5,
         scale_color_manual(values = diff[sort(unique(scmageck$diff))]) + 
         geom_vline(xintercept = c(-score_cut, score_cut), linetype = "dotted") + 
         geom_text_repel(max.overlaps = 500, show.legend = FALSE) + 
-        xlim(-score_max, score_max) + ylim(0, 5) + 
         guides(colour = guide_legend(title = "Difference", title.hjust = 0.5))
         
+        if (score_max < score_cut) {
+            p1 <- p1 + xlim(-score_max, score_max)
+        }
         #save results and return
         
         j = j + 1

@@ -3,7 +3,7 @@
 
 EnhancerGeneExpression <- function(sg_dir, mtx_dir, selected = NULL, prefix = "./", upstream = 2000000, 
                                    downstream = 2000000, gene_annotations = NULL, species = "Hs", version = "v75",
-                                   NTC = "NTC") {
+                                   NTC = "NTC", html_config = FALSE) {
     
     # get genome annotations
     
@@ -38,6 +38,7 @@ EnhancerGeneExpression <- function(sg_dir, mtx_dir, selected = NULL, prefix = ".
     } else {
         mtx <- mtx_dir
     }
+        
     if (is.character(sg_dir)) {
         message(paste("Reading sgRNA lib file:", sg_dir))
         sg_lib <- read.table(sg_dir, header = T)
@@ -45,31 +46,49 @@ EnhancerGeneExpression <- function(sg_dir, mtx_dir, selected = NULL, prefix = ".
         sg_lib <- sg_dir
     }
 
+    sg_lib <- subset(sg_lib, cell %in% intersect(sg_lib$cell, colnames(mtx)))
     if(is.null(selected)){
-        selected <- sg_lib$gene
+        selected <- unique(sg_lib$gene)
         selected <- selected[grep("^chr", selected)]
     }
     
-    dir <- file.path(prefix, "enhancer_gene_expression")
+    dir <- file.path(prefix, "pdf")
     if (!dir.exists(dir)) {
         dir.create(path = dir)
     }
     
+    dir <- file.path(dir, "enhancer_function")
+    if (!dir.exists(dir)) {
+        dir.create(path = dir)
+    }
+    
+    dir <- file.path(dir, "enhancer_gene_expression")
+    if (!dir.exists(dir)) {
+        dir.create(path = dir)
+    }
+
     img_dir <- file.path(prefix, "img")
     if (!dir.exists(img_dir)) {
         dir.create(path = img_dir)
     }
+        
+    img_dir <- file.path(img_dir, "enhancer_function")
+    if (!dir.exists(img_dir)) {
+        dir.create(path = img_dir)
+    }
+        
     img_dir <- file.path(img_dir, "enhancer_gene_expression")
     if (!dir.exists(img_dir)) {
         dir.create(path = img_dir)
     }
     
     if(is.character(selected)){
+        
         if(length(selected) == 1){
                                   
             #get information from selected enhancer
     
-            all <- unlist(strsplit(selected, "[.|:|-]"))
+            all <- unlist(strsplit(selected, "[.|:|-|_]"))
             chr <- all[1]
             start <- as.numeric(all[2])
             end <- as.numeric(all[3])
@@ -93,7 +112,8 @@ EnhancerGeneExpression <- function(sg_dir, mtx_dir, selected = NULL, prefix = ".
                                       (gene_model$start < minbp & gene_model$end > maxbp)), ]
             gene_model <- gene_model[gene_model$transcript %in% rownames(mtx), ]
             
-            if(nrow(gene_model) == 0){
+            l <- nrow(gene_model)
+            if(l == 0){
                 stop("Cannot find genes close to selected region.")
             }
             gene_list <- gene_model$transcript
@@ -103,9 +123,9 @@ EnhancerGeneExpression <- function(sg_dir, mtx_dir, selected = NULL, prefix = ".
             
             #rename enhancer
             
-            new_select <- gsub("[:|-]", ".", selected)
+            new_select <- gsub("[:|-|.]", "_", selected)
             
-            mtx_new <- subset(mtx, cells = c(select_sg$cell, colnames(subset(mtx, perturbations == NTC))))
+            mtx_new <- subset(mtx, cells = c(unique(select_sg$cell), colnames(subset(mtx, perturbations == NTC))))
             mtx_new$perturbations <- gsub(selected,
                                           "single enhancer",
                                           mtx_new$perturbations)
@@ -120,7 +140,7 @@ EnhancerGeneExpression <- function(sg_dir, mtx_dir, selected = NULL, prefix = ".
                 dir.create(path = img_dir)
             }
             
-            for(i in 1:nrow(gene_model)) {
+            for(i in 1:l) {
                 gene <- gene_list[i]
                 p <- VlnPlot(object = mtx_new,
                              features = gene,
@@ -137,10 +157,10 @@ EnhancerGeneExpression <- function(sg_dir, mtx_dir, selected = NULL, prefix = ".
             
             #save plot
 
-            pdf(file = file.path(prefix, paste(new_select, ".pdf", sep = "")), height = 20, width = 18)
-            for(i in 1:(ceiling(nrow(gene_model)/12))){
-                if(i == ceiling(nrow(gene_model)/12)) {
-                    up <- nrow(gene_model)
+            pdf(file = file.path(dir, paste(new_select, ".pdf", sep = "")), height = 20, width = 18)
+            for(i in 1:(ceiling(l/12))){
+                if(i == ceiling(l/12)) {
+                    up <- l
                 } else {
                     up <- i * 12
                 }
@@ -157,9 +177,11 @@ EnhancerGeneExpression <- function(sg_dir, mtx_dir, selected = NULL, prefix = ".
             }
             dev.off()
         
-            for(i in 1:(ceiling(nrow(gene_model)/12))){
-                if(i == ceiling(nrow(gene_model)/12)) {
-                    up <- nrow(gene_model)
+            enhancer <- c()
+            
+            for(i in 1:(ceiling(l/12))){
+                if(i == ceiling(l/12)) {
+                    up <- l
                 } else {
                     up <- i * 12
                 }
@@ -176,7 +198,16 @@ EnhancerGeneExpression <- function(sg_dir, mtx_dir, selected = NULL, prefix = ".
                     height = 1400, width = 1300, res = 72)
                 print(p)
                 dev.off()
+                
+                enhancer <- c(enhancer, file.path("img/enhancer_function/enhancer_gene_expression", 
+                                                  paste(i, ".png", sep = "")))
             }
+            
+            #generate html config
+
+            names(enhancer) <- seq(1:(ceiling(l/12)))
+            enhancer <- paste(names(enhancer), enhancer, collapse = "\" , \"", sep = "\" : \"")
+            all_enhancer <- paste("\"enhancer\" : {\"", enhancer, "\"}", sep = "")
             
         }else{
                 
@@ -184,11 +215,14 @@ EnhancerGeneExpression <- function(sg_dir, mtx_dir, selected = NULL, prefix = ".
                 
             j <- 0
             results <- list()
+            k <- 0
+            all_enhancer <- c()
+            
             for(perturb in selected){
                 
                 #get information from selected enhancer
                 
-                all <- unlist(strsplit(perturb, "[.|:|-]"))
+                all <- unlist(strsplit(perturb, "[.|:|-|_]"))
                 chr <- all[1]
                 start <- as.numeric(all[2])
                 end <- as.numeric(all[3])
@@ -212,19 +246,20 @@ EnhancerGeneExpression <- function(sg_dir, mtx_dir, selected = NULL, prefix = ".
                                           (gene_model$start < minbp & gene_model$end > maxbp)), ]
                 gene_model <- gene_model[gene_model$transcript %in% rownames(mtx), ]
             
-                if(nrow(gene_model) == 0){
+                l <- nrow(gene_model)
+                if(l == 0){
                     next
                 }
                 gene_list <- gene_model$transcript
             
                 #rename enhancer
                 
-                new_perturb <- gsub("[:|-]", ".", perturb)
+                new_perturb <- gsub("[:|-]", "_", perturb)
                 
                 result <- list()
                 select_sg <- subset(sg_lib, gene == perturb)
                 
-                mtx_new <- subset(mtx, cells = c(select_sg$cell, colnames(subset(mtx, perturbations == NTC))))
+                mtx_new <- subset(mtx, cells = c(unique(select_sg$cell), colnames(subset(mtx, perturbations == NTC))))
                 mtx_new$perturbations <- gsub(perturb,
                                               "single enhancer",
                                               mtx_new$perturbations)
@@ -236,12 +271,17 @@ EnhancerGeneExpression <- function(sg_dir, mtx_dir, selected = NULL, prefix = ".
                 
                 #create save path
                 
-                dir <- file.path(img_dir, new_perturb)
-                if (!dir.exists(dir)) {
-                    dir.create(path = dir)
+                dir1 <- file.path(dir, new_perturb)
+                if (!dir.exists(dir1)) {
+                    dir.create(path = dir1)
                 }
                 
-                for(i in 1:nrow(gene_model)) {
+                dir2 <- file.path(img_dir, new_perturb)
+                if (!dir.exists(dir2)) {
+                    dir.create(path = dir2)
+                }
+                
+                for(i in 1:l) {
                     gene <- gene_list[i]
                     p <- VlnPlot(object = mtx_new,
                                  features = gene,
@@ -260,10 +300,10 @@ EnhancerGeneExpression <- function(sg_dir, mtx_dir, selected = NULL, prefix = ".
                 
                 #save plot
 
-                pdf(file = file.path(prefix, paste(new_perturb, ".pdf", sep = "")), height = 20, width = 18)
-                for(i in 1:(ceiling(nrow(gene_model)/12))){
-                    if(i == ceiling(nrow(gene_model)/12)) {
-                        up <- nrow(gene_model)
+                pdf(file = file.path(dir1, paste(new_perturb, ".pdf", sep = "")), height = 20, width = 18)
+                for(i in 1:(ceiling(l/12))){
+                    if(i == ceiling(l/12)) {
+                        up <- l
                     } else {
                         up <- i * 12
                     }
@@ -275,38 +315,58 @@ EnhancerGeneExpression <- function(sg_dir, mtx_dir, selected = NULL, prefix = ".
                                                                              face = "bold", 
                                                                              rot = 90,
                                                                              vjust = 1)) + 
-                theme(plot.margin = margin(20, 20, 20, 30))
-                print(p)
-            }
-            dev.off()
-        
-            for(i in 1:(ceiling(nrow(gene_model)/12))){
-                if(i == ceiling(nrow(gene_model)/12)) {
-                    up <- nrow(gene_model)
-                } else {
-                    up <- i * 12
+                    theme(plot.margin = margin(20, 20, 20, 30))
+                    print(p)
                 }
-                p <- plot_grid(plotlist = result[(i * 12 - 11) : up], 
-                               ncol = 4, align = "hv") + 
-                theme(plot.margin = margin(20, 20, 20, 40))
-                p <- ggpubr::annotate_figure(p, left = ggpubr::text_grob(new_perturb, 
-                                                                         size = 40,
-                                                                         face = "bold", 
-                                                                         rot = 90, 
-                                                                         vjust = 1)) + 
-                theme(plot.margin = margin(20, 20, 20, 30))
-                png(file.path(dir, paste(i, ".png", sep = "")), 
-                    height = 1400, width = 1300, res = 72)
-                print(p)
                 dev.off()
-            }
+        
+                enhancer <- c()
+                
+                #generate enhancer directory of html
+                
+                enhancer_prefix <- file.path("img/enhancer_function/enhancer_gene_expression", new_perturb)
+                
+                for(i in 1:(ceiling(l/12))){
+                    if(i == ceiling(l/12)) {
+                        up <- l
+                    } else {
+                        up <- i * 12
+                    }
+                    p <- plot_grid(plotlist = result[(i * 12 - 11) : up], 
+                                   ncol = 4, align = "hv") + 
+                    theme(plot.margin = margin(20, 20, 20, 40))
+                    p <- ggpubr::annotate_figure(p, left = ggpubr::text_grob(new_perturb, 
+                                                                             size = 40,
+                                                                             face = "bold", 
+                                                                             rot = 90, 
+                                                                             vjust = 1)) + 
+                    theme(plot.margin = margin(20, 20, 20, 30))
+                    png(file.path(dir2, paste(i, ".png", sep = "")), 
+                        height = 1400, width = 1300, res = 72)
+                    print(p)
+                    dev.off()
+                    
+                    enhancer <- c(enhancer, paste(file.path(enhancer_prefix, i), ".png", sep = ""))
+                    names(enhancer)[i] <- i
+                }
                 
                 j <- j + 1
                 results[[j]] <- result
                 names(results)[j] <- new_perturb
+                
+                enhancer <- paste(names(enhancer), enhancer, collapse = "\" , \"", sep = "\" : \"")
+                enhancer <- paste("\"", new_perturb, "\" : {\"", enhancer, "\"}", sep = "")
+                all_enhancer <- c(all_enhancer, enhancer)
+                
             }
+            all_enhancer <- paste("", all_enhancer, collapse = ", ", sep = "")
+            all_enhancer <- paste("\"enhancer\" : {", all_enhancer, "}", sep = "")
         }
-        return(results)
+        if (html_config == TRUE) {
+            return(list(results, all_enhancer))
+        } else {
+            return(results)
+        }
     }else{
         stop("Please input correct format of selected perturbations")
     }

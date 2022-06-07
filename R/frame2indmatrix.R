@@ -19,7 +19,8 @@ frame2indmatrix <- function(bc_d, targetobj) {
     row <- bc_d[, 'cell']
     col <- bc_d[, 'gene']
     test <- (row %in% rnm) & (col %in% cnm)
-    idx <- cbind(row[test], col[test])
-    ind_matrix[idx]  <- 1
+    idx <- as.matrix(data.frame(row[test], col[test]))
+    #idx <- cbind(row[test], col[test])
+    ind_matrix[idx] <- 1
     return(ind_matrix)
 }
